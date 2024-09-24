@@ -1,0 +1,37 @@
+.search {
+}
+.search__form {
+  position: relative;
+  max-width: 250px;
+}
+
+.search__button {
+  border: 0;
+}
+
+.search__input {
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  width: 250px;
+}
+
+.search__icon {
+  position: absolute;
+	border: 0;
+	
+	cursor: pointer;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  
+}
+
+.search__input:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+}
+

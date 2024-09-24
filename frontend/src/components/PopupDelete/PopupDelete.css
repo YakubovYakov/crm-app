@@ -1,0 +1,48 @@
+.popup-delete {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.popup-delete__content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.popup-delete__button {
+  padding: 10px 20px;
+  margin: 10px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.popup-delete__button-confirm {
+  background-color: #e74c3c;
+  color: white;
+	opacity: 1;
+	transition: 0.7s;
+}
+
+.popup-delete__button-confirm:hover {
+	opacity: 0.7;
+}
+
+.popup-delete__button-cancel {
+  background-color: #95a5a6;
+  color: white;
+	opacity: 1;
+	transition: 0.7s;
+}
+
+.popup-delete__button-cancel:hover {
+	opacity: 0.7;
+}

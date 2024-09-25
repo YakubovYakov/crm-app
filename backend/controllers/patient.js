@@ -1,4 +1,4 @@
-const { postgresClient } = require("../db"); // Правильное подключение Postgres клиента
+const { postgresClient, pool } = require("../db");
 
 // Поиск пациента по номеру карты
 const searchCardsByPatient = async (req, res, next) => {
@@ -40,6 +40,49 @@ const searchCardsByPatient = async (req, res, next) => {
   }
 };
 
+const updateCrmStatus = async (req, res, next) => {
+  const { id } = req.params;
+  const { crm_status } = req.body;
+
+  try {
+    const [result] = await pool.query(
+      "UPDATE people SET crm_status = ? WHERE id = ?",
+      [crm_status, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Пациент не найден" });
+    }
+
+    res.status(200).json({ messgae: "Статус сделки обновлен" });
+  } catch (err) {
+    console.error("Ошибка при обновлении CRM статуса", err);
+    next(err);
+  }
+};
+
+const updatePatientStatus = async (req, res, next) => {
+  const { id } = req.params;
+  const { crm_status } = req.body;
+
+  try {
+    const [result] = await pool.query(
+      "UPDATE people SET crm_status = ? WHERE id = ?",
+      [crm_status, id]
+    );
+    if (result.affectedRows === 0) {
+      res.status(404).json({ message: "Пациент не найден" });
+    } else {
+      res.status(200).json({ message: "Пользователь обновлен" });
+    }
+  } catch (err) {
+    console.error("Ошибка при обновлении статуса сделки:", err);
+    next(err);
+  }
+};
+
 module.exports = {
+  updateCrmStatus,
   searchCardsByPatient,
+	updatePatientStatus,
 };

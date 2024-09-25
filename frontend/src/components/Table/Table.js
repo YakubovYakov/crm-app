@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./Table.css";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 // import Contact from "../Contact/Contact";
 import Search from "../Search/Search";
 import PopupDelete from "../PopupDelete/PopupDelete";
@@ -20,10 +20,10 @@ function Table() {
     birthday: "",
     crm_status: "",
   });
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   const handleRowClick = (patient) => {
-    navigate(`/contact/${patient.id}`, { state: { patient } });
+		window.open(`/contact/${patient.id}`, "_blank")
   };
 
   //Получение пользователей из БД
@@ -177,7 +177,7 @@ function Table() {
           <table className="table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>ФИО</th>
                 <th>Фамилия</th>
                 <th>Имя</th>
                 <th>Отчество</th>
@@ -192,7 +192,7 @@ function Table() {
                   key={item.id}
                   onClick={() => handleRowClick(item)}
                 >
-                  <td>{item.id}</td>
+                  <td>{item.surname}</td>
                   <td>{item.surname}</td>
                   <td>{item.name}</td>
                   <td>{item.patron}</td>

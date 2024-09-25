@@ -4,6 +4,7 @@
 .contact {
   display: flex;
   justify-content: space-between;
+	flex-direction: column;
   padding: 20px;
 }
 
@@ -73,9 +74,19 @@
 }
 
 .contact__stage-button.active {
-  background-color: #4caf50; /* Зеленый цвет для активной кнопки */
+  background-color: #4caf50; 
   color: white;
   border-color: #4caf50;
+}
+
+.contact__back-button {
+	border: 0;
+	padding: 10px;
+	border-radius: 7px ;
+	background-color: #4caf50; 
+  color: white;
+  border-color: #4caf50;
+	margin-bottom: 20px;
 }
 
 .diagnosis-list {

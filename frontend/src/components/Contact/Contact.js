@@ -1,25 +1,23 @@
 import React, { useEffect, useState } from "react";
 import "./Contact.css";
-// import { useParams } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
+// import { useLocation } from "react-router-dom";
 
 function Contact() {
+  const { id } = useParams();
+  const [patient, setPatient] = useState(null);
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState("");
-
   const [diagnoses, setDiagnoses] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDiagnosis, setSelectedDiagnosis] = useState("");
-
   const [currentStage, setCurrentStage] = useState("");
-  const location = useLocation();
-  const patient = location.state?.patient;
-  const patientData = location.state?.patient;
+  // const location = useLocation();
+  // const patient = location.state?.patient;
+  // const patientData = location.state?.patient;
 
-  const handleStageClick = (stage) => {
-    setCurrentStage(stage);
-  };
-
+  //Фунукция для получения диагноза
   const fetchDiagnoses = async (query) => {
     try {
       const response = await fetch(
@@ -43,23 +41,59 @@ function Contact() {
     }
   }, [searchTerm]);
 
+  // Функция загрузки данных пациента по ID
+  useEffect(() => {
+    const fetchPatientData = async () => {
+      try {
+        const response = await fetch(`http://localhost:3001/api/users/${id}`);
+        if (!response.ok) {
+          throw new Error("Ошибка при загрузке данных пациента");
+        }
+        const data = await response.json();
+        setPatient(data);
+        setCurrentStage(data.crm_status);
+      } catch (err) {
+        console.error("Ошибка", err);
+      }
+    };
+    fetchPatientData();
+  }, [id]);
+
+  const handleStageClick = async (newStage) => {
+    setCurrentStage(newStage);
+
+    try {
+      const response = await fetch(
+        `http://localhost:3001/api/patient/${id}/status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ crm_status: newStage }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Ошибка при обновлении статуса сделки");
+      }
+
+      const data = await response.json();
+      console.log("Статус сделки обновлен:", data);
+    } catch (err) {
+      console.error("Ошибка при обновлении статуса сделки:", err);
+    }
+  };
   // Поиск карт пациента
   useEffect(() => {
-    if (
-      patientData &&
-      patientData.surname &&
-      patientData.name &&
-      patientData.birthday
-    ) {
+    if (patient && patient.surname && patient.name && patient.birthday) {
       const fetchCards = async () => {
         const queryParams = new URLSearchParams({
-          surname: patientData.surname,
-          name: patientData.name,
-          birthday: patientData.birthday,
+          surname: patient.surname,
+          name: patient.name,
+          birthday: patient.birthday,
         });
 
-        if (patientData.patron)
-          queryParams.append("patron", patientData.patron);
+        if (patient.patron) queryParams.append("patron", patient.patron);
 
         try {
           const response = await fetch(
@@ -71,12 +105,7 @@ function Contact() {
           }
 
           const data = await response.json();
-          if (data.length > 0) {
-            setCards(data);
-            setSelectedCard(data[0].card_number);
-          } else {
-            console.log("Карта не найдена");
-          }
+          setCards(data);
         } catch (err) {
           console.error("Ошибка при поиске карт:", err);
         }
@@ -84,23 +113,23 @@ function Contact() {
 
       fetchCards();
     } else {
-			console.error("Данные пациента отсутствуют или неполные.");
-		}
-  }, [patientData]);
-
-	
+      console.error("Данные пациента отсутствуют или неполные.");
+    }
+  }, [patient]);
 
   // Условие для возврата, если данных о пациенте нет
-  if (!patientData || !patientData.surname || !patientData.name) {
-    console.error("Данные пациента отсутствуют или неполные.");
-    return <p>Данные пациента отсутствуют или неполные.</p>;
+  if (!patient) {
+    return <p>Загрузка данных пациента...</p>;
   }
 
   return (
     <section className="contact">
+			<Link to="/">
+          <button className="contact__back-button">Назад к таблице</button>
+        </Link>
       <div className="contact__container">
         <h1 className="contact__title">
-          Пациент: {patient?.surname} {patient?.name}
+          Пациент: {patient.surname} {patient.name}
         </h1>
         <form className="contact__form">
           <label className="contact__label" htmlFor="name">
@@ -110,7 +139,7 @@ function Contact() {
             className="contact__input"
             type="text"
             placeholder="Фамилия"
-            value={patient?.surname || ""}
+            value={patient.surname || ""}
             readOnly
           />
 
@@ -121,7 +150,7 @@ function Contact() {
             className="contact__input"
             type="text"
             placeholder="Имя"
-            value={patient?.name || ""}
+            value={patient.name || ""}
             readOnly
           />
           <label className="contact__label" htmlFor="name">
@@ -131,7 +160,7 @@ function Contact() {
             className="contact__input"
             type="text"
             placeholder="Отчество"
-            value={patient?.patron || ""}
+            value={patient.patron || ""}
             readOnly
           />
           <label className="contact__label" htmlFor="card_number">
@@ -142,6 +171,7 @@ function Contact() {
             value={selectedCard}
             onChange={(e) => setSelectedCard(e.target.value)}
           >
+            <option value="">Выберете номер карты</option>
             {cards.map((card) => (
               <option key={card.card_number} value={card.card_number}>
                 {card.card_number}
@@ -149,7 +179,7 @@ function Contact() {
             ))}
             {cards.length === 0 && <option>Нет карты</option>}
           </select>
-          {/* <input className="contact__input" type="text" placeholder="№ карты" /> */}
+
           <label className="contact__label" htmlFor="name">
             Прием (специализация врача,выполненые манипуляции)
           </label>

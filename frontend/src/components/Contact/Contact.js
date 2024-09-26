@@ -9,13 +9,12 @@ function Contact() {
   const [patient, setPatient] = useState(null);
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState("");
+  // Диагноз
   const [diagnoses, setDiagnoses] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDiagnosis, setSelectedDiagnosis] = useState("");
+
   const [currentStage, setCurrentStage] = useState("");
-  // const location = useLocation();
-  // const patient = location.state?.patient;
-  // const patientData = location.state?.patient;
 
   //Фунукция для получения диагноза
   const fetchDiagnoses = async (query) => {
@@ -41,6 +40,11 @@ function Contact() {
     }
   }, [searchTerm]);
 
+  const clearDiagnosis = () => {
+    setSelectedDiagnosis("");
+    setSearchTerm("");
+  };
+
   // Функция загрузки данных пациента по ID
   useEffect(() => {
     const fetchPatientData = async () => {
@@ -59,31 +63,34 @@ function Contact() {
     fetchPatientData();
   }, [id]);
 
-  const handleStageClick = async (newStage) => {
-    setCurrentStage(newStage);
+  // // Стадия сделки
 
-    try {
-      const response = await fetch(
-        `http://localhost:3001/api/patient/${id}/status`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ crm_status: newStage }),
-        }
-      );
-      if (!response.ok) {
-        throw new Error("Ошибка при обновлении статуса сделки");
-      }
+  // const handleStageClick = async (newStage) => {
+  //   setCurrentStage(newStage);
 
-      const data = await response.json();
-      console.log("Статус сделки обновлен:", data);
-    } catch (err) {
-      console.error("Ошибка при обновлении статуса сделки:", err);
-    }
-  };
-  // Поиск карт пациента
+  //   try {
+  //     const response = await fetch(
+  //       `http://localhost:3001/api/patient/${id}/status`,
+  //       {
+  //         method: "PUT",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({ crm_status: newStage }),
+  //       }
+  //     );
+  //     if (!response.ok) {
+  //       throw new Error("Ошибка при обновлении статуса сделки");
+  //     }
+
+  //     const data = await response.json();
+  //     console.log("Статус сделки обновлен:", data);
+  //   } catch (err) {
+  //     console.error("Ошибка при обновлении статуса сделки:", err);
+  //   }
+  // };
+	
+//  Поиск карт пациента
   useEffect(() => {
     if (patient && patient.surname && patient.name && patient.birthday) {
       const fetchCards = async () => {
@@ -124,9 +131,9 @@ function Contact() {
 
   return (
     <section className="contact">
-			<Link to="/">
-          <button className="contact__back-button">Назад к таблице</button>
-        </Link>
+      <Link to="/">
+        <button className="contact__back-button">Назад к таблице</button>
+      </Link>
       <div className="contact__container">
         <h1 className="contact__title">
           Пациент: {patient.surname} {patient.name}
@@ -193,8 +200,16 @@ function Contact() {
             placeholder="Диагноз"
             value={searchTerm || selectedDiagnosis}
             onChange={(e) => setSearchTerm(e.target.value)}
+            disabled={!!selectedDiagnosis}
           />
-          {diagnoses.length > 0 && (
+
+          {selectedDiagnosis && (
+            <button type="button" onClick={clearDiagnosis}>
+              Очистить диагноз
+            </button>
+          )}
+
+          {diagnoses.length > 0 && !selectedDiagnosis && (
             <ul className="diagnosis-list">
               {diagnoses.map((diag) => (
                 <li
@@ -255,33 +270,7 @@ function Contact() {
             <option className="contact__option">Нет</option>
           </select>
         </form>
-        <div className="contact__stage">
-          <h2>Стадия сделки</h2>
-          <button
-            className={`contact__stage-button ${
-              currentStage === "start" ? "active" : ""
-            }`}
-            onClick={() => handleStageClick("start")}
-          >
-            Начальная
-          </button>
-          <button
-            className={`contact__stage-button ${
-              currentStage === "in_progress" ? "active" : ""
-            }`}
-            onClick={() => handleStageClick("in_progress")}
-          >
-            В процессе
-          </button>
-          <button
-            className={`contact__stage-button ${
-              currentStage === "completed" ? "active" : ""
-            }`}
-            onClick={() => handleStageClick("completed")}
-          >
-            Завершена
-          </button>
-        </div>
+        
         <form className="contact__form-notes">
           Заметки о пациенте:
           <textarea className="contact__notes"></textarea>

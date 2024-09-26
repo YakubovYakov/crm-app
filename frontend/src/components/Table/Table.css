@@ -26,17 +26,27 @@ td {
 }
 
 th {
-  background-color: #4caf50; /* Зелёный цвет для заголовков таблицы */
+  background-color: #4caf50; 
   color: white;
   font-weight: bold;
   text-transform: uppercase;
 }
 
 td {
-  background-color: #f9f9f9;
-  color: #333;
+  /* background-color: #f9f9f9; */
+  color: #fff;
   border-bottom: 1px solid #ddd;
   border-right: 1px solid #ddd;
+}
+
+.td__fio {
+	cursor: pointer;
+	transition: 0.3s;
+	opacity: 1;
+}
+
+.td__fio:hover {
+	opacity: 0.7;
 }
 
 .table__tbody {
@@ -47,12 +57,12 @@ td {
 }
 
 tr:nth-child(even) td {
-  background-color: #f1f1f1; /* Цвет для чётных строк */
+  /* background-color: #f1f1f1;  */
 }
 
-tr:hover td {
-  background-color: #f1f1f1; /* Подсветка строки при наведении */
-}
+/* tr:hover td {
+  background-color: #f1f1f1; 
+} */
 
 .table__bar {
   margin-bottom: 20px;

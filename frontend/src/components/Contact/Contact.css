@@ -30,6 +30,7 @@
 }
 
 .contact__input, .contact__select {
+	width: 90%;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -38,9 +39,6 @@
 .contact__stage {
   display: flex;
   flex-direction: row;
-	gap: 10px;
-  align-items: baseline;
-  /* margin-left: 20px; */
 }
 
 .contact__stage-button {
@@ -78,6 +76,41 @@
   color: white;
   border-color: #4caf50;
 }
+
+/* Подсветка кнопок */
+.contact__stage-button.red {
+  background-color: #dc3545; 
+  color: white;
+}
+
+.contact__stage-button.yellow {
+  background-color: #ffc107; 
+  color: white;
+}
+
+.contact__stage-button.green {
+  background-color: #28a745; 
+  color: white;
+}
+
+.row-red {
+  background-color: red;
+}
+
+.row-yellow {
+  background-color: rgba(224, 214, 38, 0.8)
+}
+
+.row-green {
+  background-color: green;
+}
+
+/* Активные кнопки */
+.contact__stage-button.active {
+  font-weight: bold;
+  border: 2px solid #000;
+}
+
 
 .contact__back-button {
 	border: 0;

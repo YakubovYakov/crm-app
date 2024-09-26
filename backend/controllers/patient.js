@@ -43,6 +43,9 @@ const searchCardsByPatient = async (req, res, next) => {
 const updateCrmStatus = async (req, res, next) => {
   const { id } = req.params;
   const { crm_status } = req.body;
+	if (!id) {
+    return res.status(400).json({ message: "ID пациента не указан" });
+  }
 
   try {
     const [result] = await pool.query(
@@ -54,7 +57,7 @@ const updateCrmStatus = async (req, res, next) => {
       return res.status(404).json({ message: "Пациент не найден" });
     }
 
-    res.status(200).json({ messgae: "Статус сделки обновлен" });
+    res.status(200).json({ message: "Статус сделки обновлен" });
   } catch (err) {
     console.error("Ошибка при обновлении CRM статуса", err);
     next(err);

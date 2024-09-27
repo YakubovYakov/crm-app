@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+// import { useParams } from "react-router-dom";
 import "./Table.css";
 import Search from "../Search/Search";
 import PopupDelete from "../PopupDelete/PopupDelete";
 import img from "../../images/delete.svg";
 
 function Table() {
-  const { id } = useParams();
+  // const { id } = useParams();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [patient, setPatient] = useState(null);
+  // const [setPatient] = useState(null);
 
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -23,11 +23,10 @@ function Table() {
     birthday: "",
     crm_status: "",
   });
-  const [cards, setCards] = useState([]);
-  const [selectedCard, setSelectedCard] = useState("");
+
   const [cardsMap, setCardsMap] = useState({});
   const [selectedCards, setSelectedCards] = useState({});
-  const [currentStage, setCurrentStage] = useState("");
+  const [selectedPayTypes, setSelectedPayTypes] = useState({});
 
   // Проваливание в контакт
   const handleRowClick = (patient) => {
@@ -88,11 +87,64 @@ function Table() {
     }
   };
 
-  const handleCardChange = (patientId, cardNumber) => {
-    setSelectedCards((prev) => ({
-      ...prev,
-      [patientId]: cardNumber,
-    }));
+  const handlePayTypeChange = async (patientId, payType) => {
+		try {
+			// Сохраняем локально для немедленного отображения
+			setSelectedPayTypes((prev) => ({
+				...prev,
+				[patientId]: payType,
+			}));
+	
+			// Отправляем на сервер
+			const response = await fetch(
+				`http://localhost:3001/api/patient/${patientId}/savePayType`,
+				{
+					method: "PUT",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ payType }),
+				}
+			);
+	
+			if (!response.ok) {
+				throw new Error("Ошибка при сохранении канала обращения");
+			}
+	
+			console.log("Канал обращения успешно сохранен");
+		} catch (err) {
+			console.error("Ошибка при изменении канала обращения:", err);
+		}
+	};
+	
+
+  const handleCardChange = async (patientId, cardNumber) => {
+    try {
+      setSelectedCards((prev) => ({
+        ...prev,
+        [patientId]: cardNumber,
+      }));
+
+      const response = await fetch(
+        `http://localhost:3001/api/patient/${patientId}/saveCard`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            cardNumber,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Ошибка при сохранении карты");
+      }
+      console.log("Номер карты успешно сохранен");
+    } catch (err) {
+      console.error("Ошибка при изменении номера карты:", err);
+    }
   };
 
   // Удаление пользователя
@@ -130,7 +182,6 @@ function Table() {
 
   // Стадия сделки
   const handleStageClick = async (patientId, newStage) => {
-    // setCurrentStage(newStage);
     try {
       const response = await fetch(
         `http://localhost:3001/api/patient/${patientId}/status`,
@@ -275,11 +326,13 @@ function Table() {
                       e.stopPropagation();
                     }}
                   >
-										{/* выбор номер карты */}
+                    {/* выбор номер карты */}
                     <select
                       value={selectedCards[patient.id] || ""}
-                      onChange={(e) => handleCardChange(patient.id, e.target.value)}
-											onFocus={() => fetchCards(patient)}
+                      onChange={(e) =>
+                        handleCardChange(patient.id, e.target.value)
+                      }
+                      onFocus={() => fetchCards(patient)}
                     >
                       <option value="">Выберете номер карты</option>
                       {cardsMap[patient.id]?.map((card) => (
@@ -307,7 +360,15 @@ function Table() {
                       e.stopPropagation();
                     }}
                   >
-                    <select>
+                    <select
+                      value={
+                        selectedPayTypes[patient.id] || patient.pay_type || ""
+                      }
+                      onChange={(e) =>
+                        handlePayTypeChange(patient.id, e.target.value)
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <option>ОМС</option>
                       <option>ПМУ</option>
                       <option>ДМС</option>

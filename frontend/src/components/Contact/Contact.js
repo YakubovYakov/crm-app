@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from "react";
 import "./Contact.css";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
-// import { useLocation } from "react-router-dom";
 
 function Contact() {
   const { id } = useParams();
   const [patient, setPatient] = useState(null);
+  const [isSelectEnable, setIsSelectEnable] = useState(false);
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState("");
+  const [appointment, setAppointment] = useState("");
+  const [payType, setPayType] = useState("");
+  const [description, setDescription] = useState("");
   // Диагноз
   const [diagnoses, setDiagnoses] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -16,6 +19,8 @@ function Contact() {
 
   const [currentStage, setCurrentStage] = useState("");
 
+  const [selectedOption, setSelectedOption] = useState("");
+  const [firstIsCome, setFirstIsCome] = useState("");
   //Фунукция для получения диагноза
   const fetchDiagnoses = async (query) => {
     try {
@@ -46,83 +51,81 @@ function Contact() {
   };
 
   // Функция загрузки данных пациента по ID
-  useEffect(() => {
-    const fetchPatientData = async () => {
-      try {
-        const response = await fetch(`http://localhost:3001/api/users/${id}`);
-        if (!response.ok) {
-          throw new Error("Ошибка при загрузке данных пациента");
-        }
-        const data = await response.json();
-        setPatient(data);
-        setCurrentStage(data.crm_status);
-      } catch (err) {
-        console.error("Ошибка", err);
+  const fetchPatientData = async () => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/users/${id}`);
+      if (!response.ok) {
+        throw new Error("Ошибка при загрузке данных пациента");
       }
-    };
+      const data = await response.json();
+      // setAppointment(data.first_appointment || "");
+      setPatient(data);
+      setSelectedCard(data.card_number || "");
+      setPayType(data.pay_type || "");
+      setDescription(data.description || "");
+      setCurrentStage(data.crm_status);
+      setFirstIsCome(data.first_is_come || "");
+
+      if (data.first_is_come !== null && data.first_is_come !== undefined) {
+        setSelectedOption(data.first_is_come.toString());
+      } else {
+        setSelectedOption("");
+      }
+    } catch (err) {
+      console.error("Ошибка", err);
+    }
+  };
+  useEffect(() => {
     fetchPatientData();
   }, [id]);
 
-  // // Стадия сделки
-
-  // const handleStageClick = async (newStage) => {
-  //   setCurrentStage(newStage);
-
-  //   try {
-  //     const response = await fetch(
-  //       `http://localhost:3001/api/patient/${id}/status`,
-  //       {
-  //         method: "PUT",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //         },
-  //         body: JSON.stringify({ crm_status: newStage }),
-  //       }
-  //     );
-  //     if (!response.ok) {
-  //       throw new Error("Ошибка при обновлении статуса сделки");
-  //     }
-
-  //     const data = await response.json();
-  //     console.log("Статус сделки обновлен:", data);
-  //   } catch (err) {
-  //     console.error("Ошибка при обновлении статуса сделки:", err);
-  //   }
-  // };
-	
-//  Поиск карт пациента
-  useEffect(() => {
-    if (patient && patient.surname && patient.name && patient.birthday) {
-      const fetchCards = async () => {
-        const queryParams = new URLSearchParams({
-          surname: patient.surname,
-          name: patient.name,
-          birthday: patient.birthday,
-        });
-
-        if (patient.patron) queryParams.append("patron", patient.patron);
-
-        try {
-          const response = await fetch(
-            `http://localhost:3001/api/patient/cards?${queryParams.toString()}`
-          );
-
-          if (!response.ok) {
-            throw new Error("Ошибка при поиске карт");
-          }
-
-          const data = await response.json();
-          setCards(data);
-        } catch (err) {
-          console.error("Ошибка при поиске карт:", err);
-        }
-      };
-
-      fetchCards();
-    } else {
-      console.error("Данные пациента отсутствуют или неполные.");
+  // Функция для сохранения данных пациента
+  const handleSave = async () => {
+    if (!patient) {
+      console.error("Данные о пациенте отсутвуют или не полные");
+      return;
     }
-  }, [patient]);
+
+    if (!selectedOption) {
+      console.error("Выберите статус 'Пришел/не пришел'");
+      alert("Пожалуйста, выберите статус 'Пришел' или 'Не пришел'");
+      return;
+    }
+
+    const body = {
+      cardNumber: selectedCard,
+      first_appointment: appointment,
+      pay_type: payType,
+      description: description,
+      first_is_come: parseInt(selectedOption, 10),
+      // appointmentStatus: selectedOption,
+    };
+    console.log("Отправляемые данные:", body);
+
+    try {
+      const response = await fetch(
+        `http://localhost:3001/api/patient/${patient.id}/save`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Ошибка при сохранении данных пациента");
+      }
+
+      const data = await response.json();
+      console.log("Данные успешно сохранены:", data);
+      console.log("Номер карты пациента:", data.cardNumber);
+      fetchPatientData();
+    } catch (err) {
+      console.error("Ошибка при сохранении данных:", err);
+    }
+  };
 
   // Условие для возврата, если данных о пациенте нет
   if (!patient) {
@@ -135,6 +138,7 @@ function Contact() {
         <button className="contact__back-button">Назад к таблице</button>
       </Link>
       <div className="contact__container">
+        <label className="contact__title-label">Информация о пациенте:</label>
         <h1 className="contact__title">
           Пациент: {patient.surname} {patient.name}
         </h1>
@@ -173,24 +177,25 @@ function Contact() {
           <label className="contact__label" htmlFor="card_number">
             Номер карты
           </label>
-          <select
-            id="card_number"
-            value={selectedCard}
-            onChange={(e) => setSelectedCard(e.target.value)}
-          >
-            <option value="">Выберете номер карты</option>
-            {cards.map((card) => (
-              <option key={card.card_number} value={card.card_number}>
-                {card.card_number}
-              </option>
-            ))}
-            {cards.length === 0 && <option>Нет карты</option>}
+
+          <select id="card_number" value={selectedCard || ""} disabled>
+            {selectedCard ? (
+              <option value={selectedCard}>{selectedCard}</option>
+            ) : (
+              <option value="">Выберете номер карты</option>
+            )}
           </select>
 
           <label className="contact__label" htmlFor="name">
             Прием (специализация врача,выполненые манипуляции)
           </label>
-          <input className="contact__input" type="text" placeholder="Прием" />
+          <input
+            className="contact__input"
+            type="text"
+            placeholder="Прием"
+            value={appointment}
+            onChange={(e) => setAppointment(e.target.value)}
+          />
           <label className="contact__label" htmlFor="diagnosis">
             Диагноз
           </label>
@@ -224,26 +229,51 @@ function Contact() {
               ))}
             </ul>
           )}
-          <select className="contact__select">
-            <option className="contact__option">Канал обращения</option>
-            <option className="contact__option">ОМС</option>
-            <option className="contact__option">ПМУ</option>
-            <option className="contact__option">ДМС</option>
-          </select>
+          <label className="contact__label">Канал обращения</label>
+          <input
+            id="payType"
+            value={payType || ""}
+            className="contact__select"
+            // onChange={(e) => setPayType(e.target.value)}
+            disabled
+          ></input>
+
+          {/* Первичный прием */}
+          <label className="contact__title-label">Первичный прием:</label>
           <label className="contact__label">Дата приема</label>
           <input className="contact__input" type="date" />
           <label className="contact__label">Пришел/не пришел</label>
-          <select className="contact__select">
-            <option className="contact__option">Пришел</option>
-            <option className="contact__option">Не пришел</option>
+          <select
+            className="contact__select"
+            value={selectedOption}
+            onChange={(e) => setSelectedOption(e.target.value)}
+            required
+          >
+            <option value="">Выберите:</option>
+            <option value="1">Пришел</option>
+            <option value="0">Не пришел</option>
           </select>
+
           <label className="contact__label">Причина отказа</label>
           <input className="contact__input" type="text" />
-          {/* тест */}
+          <label className="contact__label">Оплатил/нет</label>
           <select className="contact__select">
-            <option className="contact__option">
-              Записан/не записан на повторный прием
-            </option>
+            <option className="contact__option">Выберите:</option>
+            <option className="contact__option">Да</option>
+            <option className="contact__option">Нет</option>
+          </select>
+          <label className="contact__title-label">Вторичный прием:</label>
+          <label className="contact__label">
+            Записан/не записан на повторный прием
+          </label>
+          <select
+            className="contact__select"
+            // disabled={!isSelectEnable}
+            // value={selectedOption}
+            // onClick={(e) => setSelectedOption(true)}
+            // onChange={(e) => setSelectedOption(e.target.value)}
+          >
+            <option value="">Выберите...</option>
             <option className="contact__option">Да</option>
             <option className="contact__option">Нет</option>
           </select>
@@ -251,30 +281,42 @@ function Contact() {
           <input className="contact__input" type="date" />
           <label className="contact__label">Пришел/не пришел</label>
           <select className="contact__select">
+            <option className="contact__option">Выберите:</option>
             <option className="contact__option">Пришел</option>
             <option className="contact__option">Не пришел</option>
           </select>
           <label className="contact__label">Причина отказа</label>
           <input className="contact__input" type="text" />
+          <label className="contact__label">
+            Госпитализация/ нет (с пометкой ОМС, ПМУ, ДМС)
+          </label>
           <select className="contact__select">
-            <option className="contact__option">
-              Госпитализация/ нет (с пометкой ОМС, ПМУ, ДМС)
-            </option>
+            <option className="contact__option">Выберите</option>
             <option className="contact__option">ОМС</option>
             <option className="contact__option">ПМУ</option>
             <option className="contact__option">ДМС</option>
           </select>
+          <label className="contact__label">Оплатил/нет</label>
           <select className="contact__select">
             <option className="contact__option">Оплатил/нет</option>
             <option className="contact__option">Да</option>
             <option className="contact__option">Нет</option>
           </select>
+          <label className="contact__label">Заметки о пациенте:</label>
+          <textarea
+            className="contact__notes"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          ></textarea>
         </form>
-        
-        <form className="contact__form-notes">
-          Заметки о пациенте:
-          <textarea className="contact__notes"></textarea>
-        </form>
+
+        <button
+          className="contact__save-button"
+          type="button"
+          onClick={handleSave}
+        >
+          Сохранить
+        </button>
       </div>
     </section>
   );

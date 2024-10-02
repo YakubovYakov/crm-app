@@ -24,6 +24,12 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json({ message });
 });
 
+app.use((req, res, next) => {
+  console.log(`Получен запрос: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });

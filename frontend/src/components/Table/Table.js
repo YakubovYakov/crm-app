@@ -10,8 +10,6 @@ function Table() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // const [setPatient] = useState(null);
-
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showDeletePopup, setShowDeletePopup] = useState(false);
@@ -26,12 +24,12 @@ function Table() {
 
   const [cardsMap, setCardsMap] = useState({});
   const [selectedCards, setSelectedCards] = useState({});
-  const [selectedPayTypes, setSelectedPayTypes] = useState({});
 
-  // Проваливание в контакт
-  const handleRowClick = (patient) => {
-    window.open(`/contact/${patient.id}`, "_blank");
-  };
+  const [patients, setPatients] = useState([]);
+  const [selectedPayTypes, setSelectedPayTypes] = useState({});
+  const [selectedAppointments, setSelectedAppointments] = useState({});
+
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
   //Получение пользователей из БД
   const fetchData = async (query = "") => {
@@ -43,7 +41,13 @@ function Table() {
         throw new Error("Ошибка при загрузке данных");
       }
       const result = await response.json();
-      setData(result);
+
+      const patientsWithEmtyPayType = result.map((patient) => ({
+        ...patient,
+        pay_type: "",
+      }));
+
+      setPatients(patientsWithEmtyPayType);
       setLoading(false);
     } catch (err) {
       setError(err.message);
@@ -55,68 +59,33 @@ function Table() {
     fetchData();
   }, []);
 
-  // Преобразование даты в формат DD.MM.YYYY
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ru-RU");
-  };
-
-  // Поиск по номеру карты
-  const fetchCards = async (patient) => {
-    const queryParams = new URLSearchParams({
-      surname: patient.surname,
-      name: patient.name,
-      birthday: patient.birthday,
-    });
-    if (patient.patron) queryParams.append("patron", patient.patron);
-
+  const fetchPatientAppointment = async (mdoc_id) => {
     try {
+      console.log("Запрос данных о приеме для mdoc_id:", mdoc_id);
       const response = await fetch(
-        `http://localhost:3001/api/patient/cards?${queryParams.toString()}`
+        `http://localhost:3001/api/patient/appointment/${mdoc_id}`
       );
+
       if (!response.ok) {
-        throw new Error("Ошибка при поиске карт");
+        console.error(`Ошибка: ${response.status} ${response.statusText}`);
+        throw new Error("Ошибка при загрузке данных о приеме и методе оплаты");
       }
-      const data = await response.json();
-      setCardsMap((prevCardsMap) => ({
-        ...prevCardsMap,
-        [patient.id]: data,
-      }));
+
+      const appointmentData = await response.json();
+      console.log(
+        "Полученные данные о приеме и методе оплаты:",
+        appointmentData
+      );
+
+      return appointmentData;
     } catch (err) {
-      console.error("Ошибка при поиске карт:", err);
+      console.error(
+        "Ошибка при загрузке данных о приеме и методе оплаты:",
+        err
+      );
+      return []; // Возвращаем пустой массив, если данные не найдены
     }
   };
-
-  const handlePayTypeChange = async (patientId, payType) => {
-		try {
-			// Сохраняем локально для немедленного отображения
-			setSelectedPayTypes((prev) => ({
-				...prev,
-				[patientId]: payType,
-			}));
-	
-			// Отправляем на сервер
-			const response = await fetch(
-				`http://localhost:3001/api/patient/${patientId}/savePayType`,
-				{
-					method: "PUT",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({ payType }),
-				}
-			);
-	
-			if (!response.ok) {
-				throw new Error("Ошибка при сохранении канала обращения");
-			}
-	
-			console.log("Канал обращения успешно сохранен");
-		} catch (err) {
-			console.error("Ошибка при изменении канала обращения:", err);
-		}
-	};
-	
 
   const handleCardChange = async (patientId, cardNumber) => {
     try {
@@ -125,26 +94,224 @@ function Table() {
         [patientId]: cardNumber,
       }));
 
+      console.log(`Передача номера карты на сервер: ${cardNumber}`);
+
+      // Получаем mdoc_id из cardsMap
+      const cardData = cardsMap[patientId]?.find(
+        (card) => card.card_number === cardNumber
+      );
+
+      const mdoc_id = cardData?.mdoc_id;
+
+      console.log(`mdoc_id для карты ${cardNumber}:`, mdoc_id);
+
+      if (mdoc_id) {
+        // Получаем данные о приемах по mdoc_id
+        const appointmentData = await fetchPatientAppointment(mdoc_id);
+
+        if (appointmentData && appointmentData.length > 0) {
+          console.log("Данные о приемах:", appointmentData);
+
+          // Обновляем состояние пациента, добавляя список приемов
+          setPatients((prevPatients) =>
+            prevPatients.map((p) =>
+              p.id === patientId
+                ? {
+                    ...p,
+                    appointments: appointmentData,
+                    pay_type: "",
+                  }
+                : p
+            )
+          );
+        } else {
+          console.warn("Данные о приемах не найдены");
+          setPatients((prevPatients) =>
+            prevPatients.map((p) =>
+              p.id === patientId ? { ...p, appointments: [], pay_type: "" } : p
+            )
+          );
+        }
+
+        // Отправляем mdoc_id и cardNumber на сервер для сохранения в БД
+        const response = await fetch(
+          `http://localhost:3001/api/patient/${patientId}/saveCard`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              cardNumber,
+              mdoc_id,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Ошибка при сохранении карты и mdoc_id");
+        }
+
+        console.log("Номер карты и mdoc_id успешно сохранены в БД");
+      } else {
+        console.error("mdoc_id не найден для указанной карты");
+      }
+    } catch (err) {
+      console.error("Ошибка при изменении номера карты:", err);
+    }
+  };
+
+  const handleAppointmentChange = async (patientId, selectedNazName) => {
+    // Обновляем выбранный приём
+    setSelectedAppointments((prev) => ({
+      ...prev,
+      [patientId]: selectedNazName,
+    }));
+
+    if (!selectedNazName) {
+      setPatients((prevPatients) =>
+        prevPatients.map((p) =>
+          p.id === patientId
+            ? {
+                ...p,
+                pay_type: "",
+              }
+            : p
+        )
+      );
+      return;
+    }
+
+    // Находим данные выбранного приёма из списка приёмов пациента
+    const patient = patients.find((p) => p.id === patientId);
+
+    if (!patient) {
+      console.error(`Пациент с id ${patientId} не найден.`);
+      return;
+    }
+
+    if (!patient.appointments || patient.appointments.length === 0) {
+      console.warn(`У пациента с id ${patientId} нет доступных приёмов.`);
+      setPatients((prevPatients) =>
+        prevPatients.map((p) =>
+          p.id === patientId
+            ? {
+                ...p,
+                pay_type: selectedAppointment.pay_type || "",
+              }
+            : p
+        )
+      );
+      return;
+    }
+
+    const selectedAppointment = patient.appointments.find(
+      (appointment) => appointment.naz_name === selectedNazName
+    );
+
+    if (!selectedAppointment) {
+      console.warn(
+        `Приём с названием "${selectedNazName}" не найден у пациента с id ${patientId}.`
+      );
+
+      setPatients((prevPatients) =>
+        prevPatients.map((p) =>
+          p.id === patientId
+            ? {
+                ...p,
+                pay_type: "",
+              }
+            : p
+        )
+      );
+      return;
+    }
+
+    setPatients((prevPatients) =>
+      prevPatients.map((p) =>
+        p.id === patientId
+          ? {
+              ...p,
+              pay_type: selectedAppointment.pay_type || "",
+            }
+          : p
+      )
+    );
+
+    // Сохраняем pay_type в базе данных
+    try {
       const response = await fetch(
-        `http://localhost:3001/api/patient/${patientId}/saveCard`,
+        `http://localhost:3001/api/patient/${patientId}/payType`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            cardNumber,
+            pay_type: selectedAppointment.pay_type || "",
           }),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Ошибка при сохранении карты");
+        throw new Error("Ошибка при сохранении метода оплаты");
       }
-      console.log("Номер карты успешно сохранен");
+
+      console.log("Метод оплаты успешно сохранен в БД");
     } catch (err) {
-      console.error("Ошибка при изменении номера карты:", err);
+      console.error("Ошибка при сохранении метода оплаты:", err);
     }
+  };
+
+  const fetchCards = async (patient) => {
+    if (cardsMap[patient.id]) {
+      console.log(`Карты для пациента ${patient.id} уже загружены`);
+      return;
+    }
+
+    const queryParams = new URLSearchParams({
+      surname: patient.surname,
+      name: patient.name,
+      birthday: patient.birthday,
+    });
+    if (patient.patron) queryParams.append("patron", patient.patron);
+
+    try {
+      console.log(
+        `Отправка запроса на получение карт для пациента ${patient.id}`
+      );
+      const response = await fetch(
+        `http://localhost:3001/api/patient/cards?${queryParams.toString()}`
+      );
+      if (!response.ok) {
+        throw new Error("Ошибка при поиске карт");
+      }
+      const data = await response.json();
+      console.log(`Полученные карты для пациента ${patient.id}:`, data);
+
+      if (data.length > 0) {
+        setCardsMap((prevCardsMap) => ({
+          ...prevCardsMap,
+          [patient.id]: data,
+        }));
+      } else {
+        console.log("Карты не найдены для пациента");
+      }
+    } catch (err) {
+      console.error("Ошибка при поиске карт:", err);
+    }
+  };
+
+  // Проваливание в контакт
+	const handleRowClick = (patient) => {
+    window.open(`/contact/${patient.id}`, "_blank");
+  };
+	
+
+  // Преобразование даты в формат DD.MM.YYYY
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("ru-RU");
   };
 
   // Удаление пользователя
@@ -183,6 +350,14 @@ function Table() {
   // Стадия сделки
   const handleStageClick = async (patientId, newStage) => {
     try {
+      setPatients((prevPatients) =>
+        prevPatients.map((patient) =>
+          patient.id === patientId
+            ? { ...patient, crm_status: newStage }
+            : patient
+        )
+      );
+
       const response = await fetch(
         `http://localhost:3001/api/patient/${patientId}/status`,
         {
@@ -193,17 +368,10 @@ function Table() {
           body: JSON.stringify({ crm_status: newStage }),
         }
       );
+
       if (!response.ok) {
         throw new Error("Ошибка при обновлении статуса сделки");
       }
-
-      setData((prevData) =>
-        prevData.map((patient) =>
-          patient.id === patientId
-            ? { ...patient, crm_status: newStage }
-            : patient
-        )
-      );
     } catch (err) {
       console.error("Ошибка при обновлении статуса сделки:", err);
     }
@@ -313,7 +481,7 @@ function Table() {
               </tr>
             </thead>
             <tbody className="table__tbody">
-              {data.map((patient) => (
+              {patients.map((patient) => (
                 <tr
                   key={patient.id}
                   className={getRowClassByStatus(patient.crm_status)}
@@ -333,6 +501,7 @@ function Table() {
                         handleCardChange(patient.id, e.target.value)
                       }
                       onFocus={() => fetchCards(patient)}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <option value="">Выберете номер карты</option>
                       {cardsMap[patient.id]?.map((card) => (
@@ -345,34 +514,46 @@ function Table() {
                       )}
                     </select>
                   </td>
-                  <td>
-                    <input
-                      className="contact__input"
-                      type="text"
-                      placeholder="Прием"
-                      value={patient.appointment || ""}
-                      readOnly
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </td>
                   <td
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
                   >
-                    <select
-                      value={
-                        selectedPayTypes[patient.id] || patient.pay_type || ""
-                      }
-                      onChange={(e) =>
-                        handlePayTypeChange(patient.id, e.target.value)
-                      }
+                    {patient.appointments && patient.appointments.length > 0 ? (
+                      <select
+                        value={selectedAppointments[patient.id] || ""}
+                        onChange={(e) =>
+                          handleAppointmentChange(patient.id, e.target.value)
+                        }
+                      >
+                        <option value="">Выберите приём</option>
+                        {patient.appointments.map((appointment, index) => (
+                          <option key={index} value={appointment.naz_name}>
+                            {appointment.naz_name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className="contact__input"
+                        type="text"
+                        placeholder="Приём"
+                        value="Нет доступных приёмов"
+                        readOnly
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
+                  </td>
+
+                  <td>
+                    <input
+                      className="contact__input"
+                      type="text"
+                      placeholder="Метод оплаты"
+                      value={patient.pay_type || ""}
+                      readOnly
                       onClick={(e) => e.stopPropagation()}
-                    >
-                      <option>ОМС</option>
-                      <option>ПМУ</option>
-                      <option>ДМС</option>
-                    </select>
+                    />
                   </td>
                   <td>
                     <div className="contact__stage">

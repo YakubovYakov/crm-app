@@ -1,26 +1,41 @@
 import React, { useEffect, useState } from "react";
 import "./Contact.css";
+
 import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 
-function Contact() {
+function Contact({ patientId, selectedAppointments }) {
   const { id } = useParams();
   const [patient, setPatient] = useState(null);
+  const [appointment, setAppointment] = useState("");
   const [isSelectEnable, setIsSelectEnable] = useState(false);
   const [cards, setCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState("");
-  const [appointment, setAppointment] = useState("");
   const [payType, setPayType] = useState("");
   const [description, setDescription] = useState("");
   // Диагноз
   const [diagnoses, setDiagnoses] = useState([]);
+  const [diag, setDiag] = useState("");
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDiagnosis, setSelectedDiagnosis] = useState("");
 
   const [currentStage, setCurrentStage] = useState("");
 
   const [selectedOption, setSelectedOption] = useState("");
+  // Первичный прием
   const [firstIsCome, setFirstIsCome] = useState("");
+  const [firstSignDt, setFirstSignDt] = useState("");
+  const [firsCancelReason, setFirstCancelReason] = useState("");
+  const [firstIsPayed, setFirstIsPayed] = useState("");
+  // Вторичный прием
+  const [secondRecorded, setIsSecondRecorded] = useState("");
+  const [secondIsPayed, setSecondIsPayed] = useState("");
+  const [secondSignDt, setSecondSignDt] = useState("");
+  const [secondIsCome, setSecondIsCome] = useState("");
+  const [secondCancelReason, setSecondCancelReason] = useState("");
+  const [isHosp, setIsHosp] = useState("");
+
   //Фунукция для получения диагноза
   const fetchDiagnoses = async (query) => {
     try {
@@ -58,7 +73,7 @@ function Contact() {
         throw new Error("Ошибка при загрузке данных пациента");
       }
       const data = await response.json();
-      // setAppointment(data.first_appointment || "");
+      setAppointment(data.first_appointment || "");
       setPatient(data);
       setSelectedCard(data.card_number || "");
       setPayType(data.pay_type || "");
@@ -82,24 +97,35 @@ function Contact() {
   // Функция для сохранения данных пациента
   const handleSave = async () => {
     if (!patient) {
-      console.error("Данные о пациенте отсутвуют или не полные");
+      console.error("Данные о пациенте отсутствуют или неполные");
       return;
     }
 
-    if (!selectedOption) {
-      console.error("Выберите статус 'Пришел/не пришел'");
-      alert("Пожалуйста, выберите статус 'Пришел' или 'Не пришел'");
+    // Проверяем обязательные поля
+    if (!selectedOption || !firstSignDt || !firstIsPayed) {
+      console.error("Сделайте выбор");
+      alert("Пожалуйста, заполните все поля");
       return;
     }
 
     const body = {
       cardNumber: selectedCard,
-      first_appointment: appointment,
-      pay_type: payType,
+      pay_type: patient.payType,
       description: description,
+      first_appointment: patient.appointment || "", // Используем patient.appointment
       first_is_come: parseInt(selectedOption, 10),
-      // appointmentStatus: selectedOption,
+      first_sign_dt: firstSignDt,
+      // first_cancel_reason: firstCancelReason,
+      first_is_payed: firstIsPayed,
+      second_recorded: secondRecorded,
+      second_is_payed: secondIsPayed,
+      second_sign_dt: secondSignDt,
+      second_is_come: secondIsCome,
+      is_hosp: isHosp,
+      second_cancel_reason: secondCancelReason,
+      diag: selectedDiagnosis,
     };
+
     console.log("Отправляемые данные:", body);
 
     try {
@@ -120,8 +146,7 @@ function Contact() {
 
       const data = await response.json();
       console.log("Данные успешно сохранены:", data);
-      console.log("Номер карты пациента:", data.cardNumber);
-      fetchPatientData();
+      // Дополнительно: можно выполнить очистку формы или закрыть окно
     } catch (err) {
       console.error("Ошибка при сохранении данных:", err);
     }
@@ -186,15 +211,15 @@ function Contact() {
             )}
           </select>
 
-          <label className="contact__label" htmlFor="name">
+          <label className="contact__label" htmlFor="appointment">
             Прием (специализация врача,выполненые манипуляции)
           </label>
           <input
             className="contact__input"
             type="text"
             placeholder="Прием"
-            value={appointment}
-            onChange={(e) => setAppointment(e.target.value)}
+            value={appointment || ""}
+            readOnly
           />
           <label className="contact__label" htmlFor="diagnosis">
             Диагноз
@@ -209,7 +234,13 @@ function Contact() {
           />
 
           {selectedDiagnosis && (
-            <button type="button" onClick={clearDiagnosis}>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedDiagnosis("");
+                setSearchTerm("");
+              }}
+            >
               Очистить диагноз
             </button>
           )}
@@ -241,7 +272,13 @@ function Contact() {
           {/* Первичный прием */}
           <label className="contact__title-label">Первичный прием:</label>
           <label className="contact__label">Дата приема</label>
-          <input className="contact__input" type="date" />
+          <input
+            className="contact__input"
+            type="date"
+            value={firstSignDt}
+            onChange={(e) => setFirstSignDt(e.target.value)}
+            required
+          />
           <label className="contact__label">Пришел/не пришел</label>
           <select
             className="contact__select"
@@ -249,58 +286,126 @@ function Contact() {
             onChange={(e) => setSelectedOption(e.target.value)}
             required
           >
-            <option value="">Выберите:</option>
-            <option value="1">Пришел</option>
-            <option value="0">Не пришел</option>
+            <option className="contact__option" value="">
+              Выберите:
+            </option>
+            <option className="contact__option" value="1">
+              Пришел
+            </option>
+            <option className="contact__option" value="0">
+              Не пришел
+            </option>
           </select>
 
           <label className="contact__label">Причина отказа</label>
-          <input className="contact__input" type="text" />
+          <input
+            className="contact__input"
+            type="text"
+            value={firsCancelReason}
+            onChange={(e) => setFirstCancelReason(e.target.value)}
+          />
           <label className="contact__label">Оплатил/нет</label>
-          <select className="contact__select">
-            <option className="contact__option">Выберите:</option>
-            <option className="contact__option">Да</option>
-            <option className="contact__option">Нет</option>
+          <select
+            className="contact__select"
+            value={firstIsPayed}
+            onChange={(e) => setFirstIsPayed(e.target.value)}
+            required
+          >
+            <option className="contact__option" value="">
+              Выберите:
+            </option>
+            <option className="contact__option" value="1">
+              Да
+            </option>
+            <option className="contact__option" value="0">
+              Нет
+            </option>
           </select>
+
+          {/* вторичный прием */}
           <label className="contact__title-label">Вторичный прием:</label>
           <label className="contact__label">
             Записан/не записан на повторный прием
           </label>
           <select
             className="contact__select"
-            // disabled={!isSelectEnable}
-            // value={selectedOption}
-            // onClick={(e) => setSelectedOption(true)}
-            // onChange={(e) => setSelectedOption(e.target.value)}
+            value={secondRecorded}
+            onChange={(e) => setIsSecondRecorded(e.target.value)}
           >
             <option value="">Выберите...</option>
-            <option className="contact__option">Да</option>
-            <option className="contact__option">Нет</option>
+            <option className="contact__option" value="1">
+              Да
+            </option>
+            <option className="contact__option" value="2">
+              Нет
+            </option>
           </select>
           <label className="contact__label">Дата повторного приема</label>
-          <input className="contact__input" type="date" />
+          <input
+            className="contact__input"
+            type="date"
+            value={secondSignDt}
+            onChange={(e) => setSecondSignDt(e.target.value)}
+          />
           <label className="contact__label">Пришел/не пришел</label>
-          <select className="contact__select">
-            <option className="contact__option">Выберите:</option>
-            <option className="contact__option">Пришел</option>
-            <option className="contact__option">Не пришел</option>
+          <select
+            className="contact__select"
+            value={secondIsCome}
+            onChange={(e) => setSecondIsCome(e.target.value)}
+          >
+            <option className="contact__option" value="">
+              Выберите:
+            </option>
+            <option className="contact__option" value="1">
+              Пришел
+            </option>
+            <option className="contact__option" value="2">
+              Не пришел
+            </option>
           </select>
           <label className="contact__label">Причина отказа</label>
-          <input className="contact__input" type="text" />
+          <input
+            className="contact__input"
+            type="text"
+            value={secondCancelReason}
+            onChange={(e) => setSecondCancelReason(e.target.value)}
+          />
           <label className="contact__label">
             Госпитализация/ нет (с пометкой ОМС, ПМУ, ДМС)
           </label>
-          <select className="contact__select">
-            <option className="contact__option">Выберите</option>
-            <option className="contact__option">ОМС</option>
-            <option className="contact__option">ПМУ</option>
-            <option className="contact__option">ДМС</option>
+          <select
+            className="contact__select"
+            value={isHosp}
+            onChange={(e) => setIsHosp(e.target.value)}
+          >
+            <option className="contact__option" value="">
+              Выберите:
+            </option>
+            <option className="contact__option" value="1">
+              ОМС
+            </option>
+            <option className="contact__option" value="2">
+              ПМУ
+            </option>
+            <option className="contact__option" value="3">
+              ДМС
+            </option>
           </select>
           <label className="contact__label">Оплатил/нет</label>
-          <select className="contact__select">
-            <option className="contact__option">Оплатил/нет</option>
-            <option className="contact__option">Да</option>
-            <option className="contact__option">Нет</option>
+          <select
+            className="contact__select"
+            value={secondIsPayed}
+            onChange={(e) => setSecondIsPayed(e.target.value)}
+          >
+            <option className="contact__option" value="">
+              Выберите:
+            </option>
+            <option className="contact__option" value="1">
+              Да
+            </option>
+            <option className="contact__option" value="0">
+              Нет
+            </option>
           </select>
           <label className="contact__label">Заметки о пациенте:</label>
           <textarea

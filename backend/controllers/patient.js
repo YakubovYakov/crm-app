@@ -7,6 +7,7 @@ const searchCardsByPatient = async (req, res, next) => {
   let query = `
 			SELECT 
 			mm.mdoc_get_num_format(md.num, md.year, md.num_org, md.num_filial, md.num_type, mdtp.id, mdtp.class, 'IBN-YYYY-P') AS card_number
+			, md.id AS mdoc_id
 			FROM mm.mdoc md
 			INNER JOIN mm.mdoc_type mdtp ON mdtp.id = md.mdoc_type_id
 			JOIN mm.people p ON p.id = md.people_id
@@ -15,7 +16,7 @@ const searchCardsByPatient = async (req, res, next) => {
 			AND mdtp.mdoc_num_type_id = 2
   `;
 
-  const queryParams = [surname, name]; 
+  const queryParams = [surname, name];
 
   if (patron) {
     query += " AND md.PATRON = $3";
@@ -23,14 +24,14 @@ const searchCardsByPatient = async (req, res, next) => {
   }
 
   if (birth) {
-    query += ` AND p.BIRTH = $${queryParams.length + 1}`; 
+    query += ` AND p.BIRTH = $${queryParams.length + 1}`;
     queryParams.push(birth);
   }
 
   query += " LIMIT 100";
 
   try {
-    const { rows } = await postgresClient.query(query, queryParams); 
+    const { rows } = await postgresClient.query(query, queryParams);
     if (rows.length === 0) {
       res.json({ message: "Пациент не найден или у него нет карты." });
     } else {
@@ -44,44 +45,112 @@ const searchCardsByPatient = async (req, res, next) => {
 
 const saveCurdNumber = async (req, res, next) => {
   const { id } = req.params;
-  const { cardNumber } = req.body;
+  const { cardNumber, mdoc_id } = req.body;
 
   try {
     const [result] = await pool.query(
-      "UPDATE people SET card_number = ? WHERE id = ?",
-      [cardNumber, id]
+      "UPDATE people SET card_number = ?, mdoc_id = ? WHERE id = ?",
+      [cardNumber, mdoc_id, id]
     );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Пациент не найден" });
     }
 
-    res.status(200).json({ message: "Номер карты успешно сохранен" });
+    res
+      .status(200)
+      .json({ message: "Номер карты и mdoc_id успешно сохранены" });
   } catch (err) {
-    console.error("Ошибка при сохранении номера карты", err);
+    console.error("Ошибка при сохранении номера карты и mdoc_id", err);
     next(err);
   }
 };
 
+const getMdocIdByPatientData = async (req, res, next) => {
+  try {
+    const cardNumber = decodeURIComponent(req.params.cardNumber);
+    console.log("Полученный cardNumber:", cardNumber);
+
+    const query = `
+      SELECT 
+        mm.mdoc_get_num_format(
+          md.num, md.year, md.num_org, md.num_filial, md.num_type, 
+          mdtp.id, mdtp.class, 'IBN-YYYY-P'
+        )::text AS card_number,
+        md.id AS mdoc_id
+      FROM mm.mdoc md
+      INNER JOIN mm.mdoc_type mdtp ON mdtp.id = md.mdoc_type_id
+      JOIN mm.people p ON p.id = md.people_id
+      WHERE mm.mdoc_get_num_format(
+        md.num, md.year, md.num_org, md.num_filial, md.num_type, 
+        mdtp.id, mdtp.class, 'IBN-YYYY-P'
+      ) = $1
+    `;
+
+    const { rows } = await postgresClient.query(query, [cardNumber]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Номер карты не найден" });
+    }
+
+    res.status(200).json({ mdoc_id: rows[0].mdoc_id });
+  } catch (err) {
+    console.error("Ошибка при получении mdoc_id по номеру карты:", err);
+    res.status(500).json({ message: "Ошибка сервера" });
+  }
+};
+
+// Получение данных о приеме и методе оплаты по mdoc_id
+const getPatientAppointment = async (req, res, next) => {
+  const { mdoc_id } = req.params;
+  console.log("Получен mdoc_id:", mdoc_id);
+
+  try {
+    const query = `
+				 SELECT
+				n.name as naz_name, 
+				pt.name as pay_type, 
+				n.sign_dt as naz_sign_dt,
+				CASE WHEN n.sign_dt IS NOT NULL THEN TRUE ELSE FALSE END as is_come 
+				FROM mm.naz n
+				JOIN mm.pay_type pt ON pt.id = n.pay_type_id
+				WHERE n.mdoc_id = $1
+		`;
+
+    const { rows } = await postgresClient.query(query, [mdoc_id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Данные не найдены" });
+    }
+
+    res.status(200).json(rows);
+  } catch (err) {
+    console.error("Ошибка при получении данных о приеме и виде оплаты", err);
+    res.status(500).json({ message: "Ошибка сервера" });
+  }
+};
+
+// Контроллер для сохранения метода оплаты
 const savePayType = async (req, res, next) => {
+  console.log("Вызван savePayType с параметрами:", req.params, req.body);
   const { id } = req.params;
-  const { payType } = req.body;
+  const { pay_type } = req.body;
 
-	try {
-		const [result] = await pool.query(
-			"UPDATE people SET pay_type = ? WHERE id = ?",
-			[payType, id]
-		);
+  try {
+    const [result] = await pool.query(
+      "UPDATE crm.people SET pay_type = ? WHERE id = ?",
+      [pay_type, id]
+    );
 
-		if (result.affectedRows === 0 ) {
-			return res.status(404).json({ message: "Пациент не найден" })
-		}
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Пациент не найден" });
+    }
 
-		res.status(200).json({ message: "Канал обращения успешно сохранен" })
-	} catch (err) {
-		console.error("Ошибка при сохранении канала обращения", err);
-		next(err)
-	}
+    res.status(200).json({ message: "Метод оплаты успешно сохранен" });
+  } catch (err) {
+    console.error("Ошибка при сохранении метода оплаты", err);
+    next(err);
+  }
 };
 
 const updateCrmStatus = async (req, res, next) => {
@@ -130,18 +199,66 @@ const updatePatientStatus = async (req, res, next) => {
 
 const savePatientData = async (req, res, next) => {
   const { id } = req.params;
-  const { cardNumber, first_appointment, pay_type, description, first_is_come } = req.body;
+  const {
+    cardNumber,
+    // pay_type,
+    first_appointment,
+    description,
+    first_is_come,
+    first_sign_dt,
+    first_cancel_reason,
+    first_is_payed,
+    second_recorded,
+    second_is_payed,
+    second_sign_dt,
+    second_is_come,
+    second_cancel_reason,
+    is_hosp,
+    diag,
+  } = req.body;
 
   try {
     const [result] = await pool.query(
-      "UPDATE people SET card_number = ?, first_appointment = ?, pay_type = ?, description = ?, first_is_come = ? WHERE id = ?",
-      [cardNumber, first_appointment, pay_type, description, first_is_come, id]
+      `UPDATE crm.people SET 
+			card_number = ?, 
+			first_appointment = ?,
+      description = ?, 
+			first_is_come = ?, 
+			first_sign_dt = ?, 
+      first_cancel_reason = ?, 
+			first_is_payed = ?, 
+      second_recorded = ?, 
+			second_is_payed = ?, 
+			second_sign_dt = ?, 
+			second_is_come = ?,
+			second_cancel_reason = ?, 
+			is_hosp = ?, 
+			diag = ?
+		WHERE id = ?`,
+      [
+        cardNumber,
+        // pay_type,
+        first_appointment,
+        description,
+        first_is_come,
+        first_sign_dt,
+        first_cancel_reason,
+        first_is_payed,
+        second_recorded,
+        second_is_payed,
+        second_sign_dt,
+        second_is_come,
+        second_cancel_reason,
+        is_hosp,
+        diag,
+        id,
+      ]
     );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Пациент не найден" });
     }
-    res.status(200).json({ message: "Данные пациента обновены" });
+    res.status(200).json({ message: "Данные пациента обновлены" });
   } catch (err) {
     console.error("Ошибка при сохранении данных пациента", err);
     next(err);
@@ -154,5 +271,7 @@ module.exports = {
   updatePatientStatus,
   savePatientData,
   saveCurdNumber,
-	savePayType,
+  savePayType,
+  getPatientAppointment,
+  getMdocIdByPatientData,
 };

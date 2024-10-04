@@ -34,16 +34,3 @@ app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
 
-// app.get("/database", async (req, res) => {
-//   try {
-// 		const [rows, field] = await pool.query(`
-// 		SELECT id, name, surname, patron, birthday, crm_status
-// 		FROM people
-// 	`);
-//     console.log("Результат запроса:", rows);
-//     res.json(rows);
-//   } catch (err) {
-//     console.error("Ошибка при выполнении запроса:", err);
-//     res.status(500).json({ error: "Ошибка при выполнении запроса" });
-//   }
-// });

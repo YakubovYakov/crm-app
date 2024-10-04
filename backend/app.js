@@ -9,7 +9,7 @@ const PORT = 3001;
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", 'http://10.111.74.28:3000'],
     credentials: true,
   })
 );

@@ -22,7 +22,7 @@ function App() {
   const fetchData = async (query = "") => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/users?search=${query}`
+        `http://10.111.74.28:3002/api/users?search=${query}`
       );
       if (!response.ok) {
         throw new Error("Ошибка при загрузке данных");

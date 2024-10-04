@@ -4,7 +4,6 @@ import "./Table.css";
 import Search from "../Search/Search";
 import PopupDelete from "../PopupDelete/PopupDelete";
 import img from "../../images/delete.svg";
-
 function Table({
   patients,
   onUpdateStatus,

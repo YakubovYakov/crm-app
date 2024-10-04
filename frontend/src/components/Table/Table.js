@@ -50,7 +50,7 @@ function Table({
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/users/${editingPatient.id}`,
+        `http://localhost:3002/api/users/${editingPatient.id}`,
         {
           method: "PUT",
           headers: {
@@ -148,7 +148,7 @@ function Table({
     };
 
     try {
-      const response = await fetch("http://localhost:3001/api/users", {
+      const response = await fetch("http://localhost:3002/api/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

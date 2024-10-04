@@ -5,7 +5,7 @@ const diagnosesRoutes = require("./routes/diagnoses");
 const patientRoutes = require("./routes/patient");
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3002;
 
 app.use(
   cors({

@@ -18,7 +18,7 @@ function App() {
   const fetchData = async (query = "") => {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/users?search=${query}`
+        `http://localhost:3002/api/users?search=${query}`
       );
       if (!response.ok) {
         throw new Error("Ошибка при загрузке данных");
@@ -41,7 +41,7 @@ function App() {
     try {
       console.log("Запрос данных о приеме для mdoc_id:", mdoc_id);
       const response = await fetch(
-        `http://localhost:3001/api/patient/appointment/${mdoc_id}`
+        `http://localhost:3002/api/patient/appointment/${mdoc_id}`
       );
 
       if (!response.ok) {
@@ -159,7 +159,7 @@ function App() {
         `Отправка запроса на получение карт для пациента ${patient.id}`
       );
       const response = await fetch(
-        `http://localhost:3001/api/patient/cards?${queryParams.toString()}`
+        `http://localhost:3002/api/patient/cards?${queryParams.toString()}`
       );
       if (!response.ok) {
         throw new Error("Ошибка при поиске карт");
@@ -222,7 +222,7 @@ function App() {
     try {
       // Сохраняем приём и метод оплаты вместе
       const response = await fetch(
-        `http://localhost:3001/api/patient/${patientId}/saveAppointment`,
+        `http://localhost:3002/api/patient/${patientId}/saveAppointment`,
         {
           method: "PUT",
           headers: {
@@ -265,7 +265,7 @@ function App() {
       const isArchived = newStage === "completed" ? 1 : 0;
 
       const response = await fetch(
-        `http://localhost:3001/api/patient/${patientId}/status`,
+        `http://localhost:3002/api/patient/${patientId}/status`,
         {
           method: "PUT",
           headers: {
@@ -299,7 +299,7 @@ function App() {
   const handleDeletePatient = async (patientId) => {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/users/${patientId}`,
+        `http://localhost:3002/api/users/${patientId}`,
         {
           method: "DELETE",
         }

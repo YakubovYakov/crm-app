@@ -45,7 +45,7 @@ function Contact({ patientId, selectedAppointments }) {
   const fetchDiagnoses = async (query) => {
     try {
       const response = await fetch(
-        `http://localhost:3001/api/diagnoses?search=${query}`
+        `http://localhost:3002/api/diagnoses?search=${query}`
       );
       if (!response.ok) {
         throw new Error("Ошибка при поиске диагнозов");
@@ -148,7 +148,7 @@ function Contact({ patientId, selectedAppointments }) {
 
     try {
       const response = await fetch(
-        `http://localhost:3001/api/patient/${patient.id}/save`,
+        `http://localhost:3002/api/patient/${patient.id}/save`,
         {
           method: "PUT",
           headers: {

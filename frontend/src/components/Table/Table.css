@@ -26,7 +26,7 @@ td {
 }
 
 th {
-  background-color: #4caf50; 
+  background-color: #4caf50;
   color: white;
   font-weight: bold;
   text-transform: uppercase;
@@ -34,19 +34,19 @@ th {
 
 td {
   /* background-color: #f9f9f9; */
-  color: #fff;
+  color: #111;
   border-bottom: 1px solid #ddd;
   border-right: 1px solid #ddd;
 }
 
 .td__fio {
-	cursor: pointer;
-	transition: 0.3s;
-	opacity: 1;
+  cursor: pointer;
+  transition: 0.3s;
+  opacity: 1;
 }
 
 .td__fio:hover {
-	opacity: 0.7;
+  opacity: 0.7;
 }
 
 .table__tbody {
@@ -60,9 +60,17 @@ tr:nth-child(even) td {
   /* background-color: #f1f1f1;  */
 }
 
-/* tr:hover td {
-  background-color: #f1f1f1; 
-} */
+.row-red {
+  background-color: red;
+}
+
+.row-yellow {
+  background-color: yellow;
+}
+
+.row-green {
+  background-color: green;
+}
 
 .table__bar {
   margin-bottom: 20px;
@@ -100,14 +108,14 @@ tr:nth-child(even) td {
   transition: 0.3s;
 }
 
-.table__button:hover {
+.table__add-button:hover {
   opacity: 0.8;
 }
 
 .table__form-container {
-	position: absolute;
-	top: 30%;
-	left: 37%;
+  position: absolute;
+  top: 30%;
+  left: 37%;
   background-color: #fff;
   padding: 45px 24px 20px;
   border-radius: 10px;
@@ -117,8 +125,8 @@ tr:nth-child(even) td {
 }
 
 .table__form-container_title {
-	font-size: 20px;
-	margin-bottom: 20px;
+  font-size: 20px;
+  margin-bottom: 20px;
 }
 
 .table__form {
@@ -135,7 +143,7 @@ tr:nth-child(even) td {
   border: none;
   border-radius: 5px;
   cursor: pointer;
-	margin-top: 10px;
+  margin-top: 10px;
 }
 
 .form__button:hover {
@@ -147,7 +155,6 @@ tr:nth-child(even) td {
   right: 0;
 }
 .table__close-button {
-  /* position: relative; */
   width: 30px;
   height: 30px;
   background: none;
@@ -155,13 +162,11 @@ tr:nth-child(even) td {
   cursor: pointer;
   padding: 0;
   top: -80px;
-	cursor: pointer;
+  cursor: pointer;
 }
 
 .table__close-button span {
   position: absolute;
-  /* top: 50%;
-		left: 50%; */
   width: 20px;
   height: 2px;
   background-color: #333;
@@ -180,5 +185,165 @@ tr:nth-child(even) td {
 .table__delete-button {
   border: 0;
   background-color: transparent;
-	cursor: pointer;
+  cursor: pointer;
+}
+
+.table__button-archived {
+  border: none;
+  color: white;
+  background: #4caf50;
+  padding: 12px 30px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  border-radius: 4px;
+  margin: 4px 2px;
+  cursor: pointer;
+  opacity: 1;
+  transition: 0.3s;
+}
+
+.table__button-archived:hover {
+  opacity: 0.7;
+}
+
+.archived-patients__tbody {
+  background: green;
+}
+
+.archived-patients__return-active {
+  min-width: 140px;
+  height: 30px;
+  border-radius: 7px;
+  background-color: #dc3545;
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+  margin: 10px 0 10px;
+  transition: 0.7s;
+  opacity: 1;
+}
+
+.archived-patients__return-active:hover {
+  opacity: 0.8;
+}
+
+.archived-patients__contact {
+  min-width: 140px;
+  height: 30px;
+  border-radius: 7px;
+  background-color: #bcbf1cfc;
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: 0.7s;
+  opacity: 1;
+}
+
+.archived-patients__contact:hover {
+  opacity: 0.8;
+}
+
+.archived-patients__back-active {
+  min-width: 200px;
+  height: 40px;
+  border-radius: 7px;
+  background-color: #4caf50;
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: 0.7s;
+  opacity: 1;
+}
+
+.edit-form__section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.edit-form-container {
+  position: fixed;
+  top: 50px;
+  width: 300px;
+  height: 300px;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  margin: 0 auto;
+}
+
+.edit-form__open-button {
+	min-width: 160px;
+  height: 30px;
+  border-radius: 7px;
+  background-color: #158c54;
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+  transition: 0.7s;
+  opacity: 1;
+	margin-bottom: 10px;
+}
+
+.edit-form__open-button:hover {
+	opacity: 0.7;
+}
+
+.edit-form__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.edit-form__title {
+  margin-bottom: 16px;
+  color: #fff;
+  max-width: 200px;
+  text-align: center;
+}
+
+.edit-form__input {
+  min-width: 200px;
+  border: 0;
+  background-color: #f0f0f0;
+  font-size: 16px;
+}
+
+.edit-form__save {
+  min-width: 130px;
+  height: 30px;
+  border-radius: 7px;
+  background-color: #dc3545;
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+  transition: 0.7s;
+  opacity: 1;
+}
+
+.edit-form__cancel {
+  min-width: 130px;
+  height: 30px;
+  border-radius: 7px;
+  background-color: #4caf50;
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+  transition: 0.7s;
+  opacity: 1;
+}
+
+.edit-form__save:hover {
+  opacity: 0.7;
+}
+
+.edit-form__cancel:hover {
+  opacity: 0.7;
 }

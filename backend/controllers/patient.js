@@ -130,78 +130,115 @@ const getPatientAppointment = async (req, res, next) => {
   }
 };
 
-// Контроллер для сохранения метода оплаты
-const savePayType = async (req, res, next) => {
-  console.log("Вызван savePayType с параметрами:", req.params, req.body);
+// Контроллер для сохранения приема
+const saveAppointment = async (req, res, next) => {
+  console.log("Вызван saveAppointment с параметрами:", req.params, req.body);
   const { id } = req.params;
-  const { pay_type } = req.body;
+  const { first_appointment, pay_type } = req.body;
 
   try {
     const [result] = await pool.query(
-      "UPDATE crm.people SET pay_type = ? WHERE id = ?",
-      [pay_type, id]
+      `UPDATE crm.people SET 
+         first_appointment = ?,
+				 pay_type = ? 
+       WHERE id = ?`,
+      [first_appointment, pay_type, id]
     );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Пациент не найден" });
     }
 
-    res.status(200).json({ message: "Метод оплаты успешно сохранен" });
+    res.status(200).json({ message: "Приём и метод оплаты успешно сохранены" });
   } catch (err) {
-    console.error("Ошибка при сохранении метода оплаты", err);
+    console.error("Ошибка при сохранении приёма:", err);
     next(err);
   }
 };
+
+// const updateCrmStatus = async (req, res, next) => {
+//   const { id } = req.params;
+//   const { crm_status } = req.body;
+//   if (!id) {
+//     return res.status(400).json({ message: "ID пациента не указан" });
+//   }
+
+//   try {
+//     const [result] = await pool.query(
+//       "UPDATE people SET crm_status = ? WHERE id = ?",
+//       [crm_status, id]
+//     );
+
+//     if (result.affectedRows === 0) {
+//       return res.status(404).json({ message: "Пациент не найден" });
+//     }
+
+//     res.status(200).json({ message: "Статус сделки обновлен" });
+//   } catch (err) {
+//     console.error("Ошибка при обновлении CRM статуса", err);
+//     next(err);
+//   }
+// };
 
 const updateCrmStatus = async (req, res, next) => {
   const { id } = req.params;
   const { crm_status } = req.body;
-  if (!id) {
-    return res.status(400).json({ message: "ID пациента не указан" });
-  }
 
   try {
+    const isArchived = crm_status === "completed" ? 1 : 0;
+
     const [result] = await pool.query(
-      "UPDATE people SET crm_status = ? WHERE id = ?",
-      [crm_status, id]
+      "UPDATE crm.people SET crm_status = ?, is_archived = ? WHERE id = ?",
+      [crm_status, isArchived, id]
     );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Пациент не найден" });
     }
 
-    res.status(200).json({ message: "Статус сделки обновлен" });
-  } catch (err) {
-    console.error("Ошибка при обновлении CRM статуса", err);
-    next(err);
-  }
-};
-
-const updatePatientStatus = async (req, res, next) => {
-  const { id } = req.params;
-  const { crm_status } = req.body;
-
-  try {
-    const [result] = await pool.query(
-      "UPDATE people SET crm_status = ? WHERE id = ?",
-      [crm_status, id]
-    );
-    if (result.affectedRows === 0) {
-      res.status(404).json({ message: "Пациент не найден" });
-    } else {
-      res.status(200).json({ message: "Пользователь обновлен" });
-    }
+    res.status(200).json({ message: "Статус сделки и архивный статус обновлены" });
   } catch (err) {
     console.error("Ошибка при обновлении статуса сделки:", err);
     next(err);
   }
 };
 
+
+
+
+
+const saveNotes = async (req, res, next) => {
+  const { id } = req.params;
+  const { description } = req.body; // Это может быть строка или массив
+
+  try {
+    const [result] = await pool.query(
+      "UPDATE crm.people SET description = ? WHERE id = ?",
+      [
+        Array.isArray(description)
+          ? JSON.stringify(description) // Преобразуем массив в строку
+          : description,
+        id,
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Пациент не найден" });
+    }
+
+    res.status(200).json({ message: "Заметки успешно сохранены" });
+  } catch (err) {
+    console.error("Ошибка при сохранении заметок", err);
+    next(err);
+  }
+};
+
+
 const savePatientData = async (req, res, next) => {
   const { id } = req.params;
   const {
     cardNumber,
-    // pay_type,
+    pay_type,
     first_appointment,
     description,
     first_is_come,
@@ -218,26 +255,28 @@ const savePatientData = async (req, res, next) => {
   } = req.body;
 
   try {
-    const [result] = await pool.query(
+    // Обновляем данные пациента
+    await pool.query(
       `UPDATE crm.people SET 
-			card_number = ?, 
-			first_appointment = ?,
-      description = ?, 
-			first_is_come = ?, 
-			first_sign_dt = ?, 
-      first_cancel_reason = ?, 
-			first_is_payed = ?, 
-      second_recorded = ?, 
-			second_is_payed = ?, 
-			second_sign_dt = ?, 
-			second_is_come = ?,
-			second_cancel_reason = ?, 
-			is_hosp = ?, 
-			diag = ?
-		WHERE id = ?`,
+        card_number = ?, 
+        pay_type = ?,
+        first_appointment = ?,
+        description = ?,
+        first_is_come = ?,
+        first_sign_dt = ?,
+        first_cancel_reason = ?,
+        first_is_payed = ?,
+        second_recorded = ?,
+        second_is_payed = ?,
+        second_sign_dt = ?,
+        second_is_come = ?,
+        second_cancel_reason = ?,
+        is_hosp = ?,
+        diag = ?
+        WHERE id = ?`,
       [
         cardNumber,
-        // pay_type,
+        pay_type,
         first_appointment,
         description,
         first_is_come,
@@ -255,23 +294,29 @@ const savePatientData = async (req, res, next) => {
       ]
     );
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Пациент не найден" });
+    // Извлекаем обновленные данные пациента
+    const [rows] = await pool.query('SELECT * FROM crm.people WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Пациент не найден' });
     }
-    res.status(200).json({ message: "Данные пациента обновлены" });
+
+    const updatedPatient = rows[0];
+    res.status(200).json(updatedPatient);
   } catch (err) {
-    console.error("Ошибка при сохранении данных пациента", err);
+    console.error('Ошибка при обновлении данных пациента', err);
     next(err);
   }
 };
 
+
 module.exports = {
   updateCrmStatus,
   searchCardsByPatient,
-  updatePatientStatus,
+  // updatePatientStatus,
   savePatientData,
   saveCurdNumber,
-  savePayType,
+  saveAppointment,
   getPatientAppointment,
   getMdocIdByPatientData,
+  saveNotes,
 };

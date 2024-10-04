@@ -1,0 +1,40 @@
+.popup-notes {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.popup-notes__content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.popup-notes__title {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+}
+
+.popup-notes__list {
+  margin-top: 20px;
+}
+
+.popup-notes__note {
+  background: #f0f0f0;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+.popup-notes__close {
+  margin-top: 20px;
+}

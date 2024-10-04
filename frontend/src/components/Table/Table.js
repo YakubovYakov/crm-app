@@ -1,15 +1,25 @@
-import React, { useState, useEffect } from "react";
-// import { useParams } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Table.css";
 import Search from "../Search/Search";
 import PopupDelete from "../PopupDelete/PopupDelete";
 import img from "../../images/delete.svg";
 
-function Table() {
-  // const { id } = useParams();
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-
+function Table({
+  patients,
+  onUpdateStatus,
+  onDeletePatient,
+  fetchData,
+  onAddPatient,
+  onUpdatePatient,
+  onCardChange,
+  fetchCards,
+  cardsMap,
+  selectedCards,
+  selectedAppointments,
+  handleAppointmentChange,
+}) {
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showDeletePopup, setShowDeletePopup] = useState(false);
@@ -21,292 +31,55 @@ function Table() {
     birthday: "",
     crm_status: "",
   });
+  const [editingPatient, setEditingPatient] = useState(null);
 
-  const [cardsMap, setCardsMap] = useState({});
-  const [selectedCards, setSelectedCards] = useState({});
-
-  const [patients, setPatients] = useState([]);
-  const [selectedPayTypes, setSelectedPayTypes] = useState({});
-  const [selectedAppointments, setSelectedAppointments] = useState({});
-
-  const [selectedPatient, setSelectedPatient] = useState(null);
-
-  //Получение пользователей из БД
-  const fetchData = async (query = "") => {
-    try {
-      const response = await fetch(
-        `http://localhost:3001/api/users?search=${query}`
-      );
-      if (!response.ok) {
-        throw new Error("Ошибка при загрузке данных");
-      }
-      const result = await response.json();
-
-      const patientsWithEmtyPayType = result.map((patient) => ({
-        ...patient,
-        pay_type: "",
-      }));
-
-      setPatients(patientsWithEmtyPayType);
-      setLoading(false);
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
+  const handleEditClick = (patient) => {
+    setEditingPatient(patient);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchPatientAppointment = async (mdoc_id) => {
-    try {
-      console.log("Запрос данных о приеме для mdoc_id:", mdoc_id);
-      const response = await fetch(
-        `http://localhost:3001/api/patient/appointment/${mdoc_id}`
-      );
-
-      if (!response.ok) {
-        console.error(`Ошибка: ${response.status} ${response.statusText}`);
-        throw new Error("Ошибка при загрузке данных о приеме и методе оплаты");
-      }
-
-      const appointmentData = await response.json();
-      console.log(
-        "Полученные данные о приеме и методе оплаты:",
-        appointmentData
-      );
-
-      return appointmentData;
-    } catch (err) {
-      console.error(
-        "Ошибка при загрузке данных о приеме и методе оплаты:",
-        err
-      );
-      return []; // Возвращаем пустой массив, если данные не найдены
-    }
-  };
-
-  const handleCardChange = async (patientId, cardNumber) => {
-    try {
-      setSelectedCards((prev) => ({
-        ...prev,
-        [patientId]: cardNumber,
-      }));
-
-      console.log(`Передача номера карты на сервер: ${cardNumber}`);
-
-      // Получаем mdoc_id из cardsMap
-      const cardData = cardsMap[patientId]?.find(
-        (card) => card.card_number === cardNumber
-      );
-
-      const mdoc_id = cardData?.mdoc_id;
-
-      console.log(`mdoc_id для карты ${cardNumber}:`, mdoc_id);
-
-      if (mdoc_id) {
-        // Получаем данные о приемах по mdoc_id
-        const appointmentData = await fetchPatientAppointment(mdoc_id);
-
-        if (appointmentData && appointmentData.length > 0) {
-          console.log("Данные о приемах:", appointmentData);
-
-          // Обновляем состояние пациента, добавляя список приемов
-          setPatients((prevPatients) =>
-            prevPatients.map((p) =>
-              p.id === patientId
-                ? {
-                    ...p,
-                    appointments: appointmentData,
-                    pay_type: "",
-                  }
-                : p
-            )
-          );
-        } else {
-          console.warn("Данные о приемах не найдены");
-          setPatients((prevPatients) =>
-            prevPatients.map((p) =>
-              p.id === patientId ? { ...p, appointments: [], pay_type: "" } : p
-            )
-          );
-        }
-
-        // Отправляем mdoc_id и cardNumber на сервер для сохранения в БД
-        const response = await fetch(
-          `http://localhost:3001/api/patient/${patientId}/saveCard`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              cardNumber,
-              mdoc_id,
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("Ошибка при сохранении карты и mdoc_id");
-        }
-
-        console.log("Номер карты и mdoc_id успешно сохранены в БД");
-      } else {
-        console.error("mdoc_id не найден для указанной карты");
-      }
-    } catch (err) {
-      console.error("Ошибка при изменении номера карты:", err);
-    }
-  };
-
-  const handleAppointmentChange = async (patientId, selectedNazName) => {
-    // Обновляем выбранный приём
-    setSelectedAppointments((prev) => ({
-      ...prev,
-      [patientId]: selectedNazName,
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditingPatient((prevPatient) => ({
+      ...prevPatient,
+      [name]: value,
     }));
+  };
 
-    if (!selectedNazName) {
-      setPatients((prevPatients) =>
-        prevPatients.map((p) =>
-          p.id === patientId
-            ? {
-                ...p,
-                pay_type: "",
-              }
-            : p
-        )
-      );
-      return;
-    }
+  const handleUpdatePatient = async (e) => {
+    e.preventDefault();
 
-    // Находим данные выбранного приёма из списка приёмов пациента
-    const patient = patients.find((p) => p.id === patientId);
-
-    if (!patient) {
-      console.error(`Пациент с id ${patientId} не найден.`);
-      return;
-    }
-
-    if (!patient.appointments || patient.appointments.length === 0) {
-      console.warn(`У пациента с id ${patientId} нет доступных приёмов.`);
-      setPatients((prevPatients) =>
-        prevPatients.map((p) =>
-          p.id === patientId
-            ? {
-                ...p,
-                pay_type: selectedAppointment.pay_type || "",
-              }
-            : p
-        )
-      );
-      return;
-    }
-
-    const selectedAppointment = patient.appointments.find(
-      (appointment) => appointment.naz_name === selectedNazName
-    );
-
-    if (!selectedAppointment) {
-      console.warn(
-        `Приём с названием "${selectedNazName}" не найден у пациента с id ${patientId}.`
-      );
-
-      setPatients((prevPatients) =>
-        prevPatients.map((p) =>
-          p.id === patientId
-            ? {
-                ...p,
-                pay_type: "",
-              }
-            : p
-        )
-      );
-      return;
-    }
-
-    setPatients((prevPatients) =>
-      prevPatients.map((p) =>
-        p.id === patientId
-          ? {
-              ...p,
-              pay_type: selectedAppointment.pay_type || "",
-            }
-          : p
-      )
-    );
-
-    // Сохраняем pay_type в базе данных
     try {
       const response = await fetch(
-        `http://localhost:3001/api/patient/${patientId}/payType`,
+        `http://localhost:3001/api/users/${editingPatient.id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            pay_type: selectedAppointment.pay_type || "",
-          }),
+          body: JSON.stringify(editingPatient),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Ошибка при сохранении метода оплаты");
+        throw new Error("Ошибка при обновлении данных пациента");
       }
 
-      console.log("Метод оплаты успешно сохранен в БД");
+      // Обновляем состояние в App
+      onUpdatePatient(editingPatient);
+
+      // Закрываем форму редактирования
+      setEditingPatient(null);
     } catch (err) {
-      console.error("Ошибка при сохранении метода оплаты:", err);
+      console.error(err);
     }
   };
 
-  const fetchCards = async (patient) => {
-    if (cardsMap[patient.id]) {
-      console.log(`Карты для пациента ${patient.id} уже загружены`);
-      return;
-    }
+  const navigate = useNavigate();
 
-    const queryParams = new URLSearchParams({
-      surname: patient.surname,
-      name: patient.name,
-      birthday: patient.birthday,
-    });
-    if (patient.patron) queryParams.append("patron", patient.patron);
-
-    try {
-      console.log(
-        `Отправка запроса на получение карт для пациента ${patient.id}`
-      );
-      const response = await fetch(
-        `http://localhost:3001/api/patient/cards?${queryParams.toString()}`
-      );
-      if (!response.ok) {
-        throw new Error("Ошибка при поиске карт");
-      }
-      const data = await response.json();
-      console.log(`Полученные карты для пациента ${patient.id}:`, data);
-
-      if (data.length > 0) {
-        setCardsMap((prevCardsMap) => ({
-          ...prevCardsMap,
-          [patient.id]: data,
-        }));
-      } else {
-        console.log("Карты не найдены для пациента");
-      }
-    } catch (err) {
-      console.error("Ошибка при поиске карт:", err);
-    }
+  // Функция для поиска пациентов
+  const handleSearch = (searchTerm) => {
+    fetchData(searchTerm);
   };
-
-  // Проваливание в контакт
-	const handleRowClick = (patient) => {
-    window.open(`/contact/${patient.id}`, "_blank");
-  };
-	
 
   // Преобразование даты в формат DD.MM.YYYY
   const formatDate = (dateString) => {
@@ -314,69 +87,7 @@ function Table() {
     return date.toLocaleDateString("ru-RU");
   };
 
-  // Удаление пользователя
-  const handleDelete = async (id) => {
-    try {
-      const response = await fetch(`http://localhost:3001/api/users/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Ошибка при удалении пользователя");
-      }
-
-      setData((prevData) => prevData.filter((user) => user.id !== id));
-      setShowDeletePopup(false);
-    } catch (err) {
-      console.error("Ошибка при удалении пользователя", err);
-    }
-  };
-
-  const handleDeleteClick = (id) => {
-    setUserToDelete(id);
-    setShowDeletePopup(true);
-  };
-
-  // Обработка поиска
-  const handleSearch = (searchTerm) => {
-    fetchData(searchTerm);
-  };
-
-  const handleClosePopupDelete = () => {
-    setShowDeletePopup(false);
-    setUserToDelete(null); // Сбрасываем ID пользователя
-  };
-
-  // Стадия сделки
-  const handleStageClick = async (patientId, newStage) => {
-    try {
-      setPatients((prevPatients) =>
-        prevPatients.map((patient) =>
-          patient.id === patientId
-            ? { ...patient, crm_status: newStage }
-            : patient
-        )
-      );
-
-      const response = await fetch(
-        `http://localhost:3001/api/patient/${patientId}/status`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ crm_status: newStage }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Ошибка при обновлении статуса сделки");
-      }
-    } catch (err) {
-      console.error("Ошибка при обновлении статуса сделки:", err);
-    }
-  };
-
+  // Функция для получения класса строки по статусу сделки
   const getRowClassByStatus = (status) => {
     if (status === "start") return "row-red";
     if (status === "in_progress") return "row-yellow";
@@ -384,7 +95,29 @@ function Table() {
     return "";
   };
 
-  //Создание нового пациента
+  // Проваливание в контакт
+  const handleRowClick = (patient) => {
+    window.open(`/contact/${patient.id}`, "_blank");
+  };
+
+  // Удаление пользователя
+  const handleDeleteClick = (id) => {
+    setUserToDelete(id);
+    setShowDeletePopup(true);
+  };
+
+  const handleConfirmDelete = () => {
+    onDeletePatient(userToDelete);
+    setShowDeletePopup(false);
+    setUserToDelete(null);
+  };
+
+  const handleClosePopupDelete = () => {
+    setShowDeletePopup(false);
+    setUserToDelete(null);
+  };
+
+  // Создание нового пациента
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -401,21 +134,17 @@ function Table() {
     const { name, value } = e.target;
     setNewUser((prev) => ({ ...prev, [name]: value }));
   };
+
   // Обработка отправки формы
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!newUser.birthday) {
-      console.error("Дата рождения обязательна");
-      return;
-    }
-
-    // Приведение данных к верхнему регистру
     const formattedUser = {
       ...newUser,
       name: newUser.name.toUpperCase(),
       surname: newUser.surname.toUpperCase(),
       patron: newUser.patron ? newUser.patron.toUpperCase() : "",
+      birthday: newUser.birthday || null,
     };
 
     try {
@@ -432,7 +161,7 @@ function Table() {
       }
 
       const addedUser = await response.json();
-      setData((prevData) => [...prevData, addedUser]); // Добавляем нового пользователя в таблицу
+      onAddPatient(addedUser);
       setShowForm(false);
       setNewUser({
         name: "",
@@ -452,6 +181,12 @@ function Table() {
         <div className="table__bar">
           <Search onSearch={handleSearch} />
           <button
+            className="table__button-archived"
+            onClick={() => navigate("/archived")}
+          >
+            Посмотреть архив
+          </button>
+          <button
             type="button"
             className="table__add-button"
             onClick={() => setShowForm(true)}
@@ -463,21 +198,20 @@ function Table() {
         {/* Индикация загрузки */}
         {loading ? (
           <p>Загрузка данных...</p>
+        ) : error ? (
+          <p className="error">{error}</p>
         ) : (
-          error && <p className="error">{error}</p>
-        )}
-
-        {/* Таблица */}
-        {!loading && !error && (
+          /* Таблица */
           <table className="table">
             <thead>
               <tr>
                 <th>ФИО</th>
                 <th>Дата рождения</th>
                 <th>Номер карты</th>
-                <th>Прием (специализация врача,выполненые манипуляции)</th>
+                <th>Прием (специализация врача, выполненные манипуляции)</th>
                 <th>Канал обращения</th>
                 <th>Стадия сделки</th>
+                <th></th>
               </tr>
             </thead>
             <tbody className="table__tbody">
@@ -489,17 +223,20 @@ function Table() {
                 >
                   <td className="td__fio">{`${patient.surname} ${patient.name} ${patient.patron}`}</td>
                   <td>{formatDate(patient.birthday)}</td>
-                  <td
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
+                  <td>
+                    <button
+											className="edit-form__open-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditClick(patient);
+                      }}
+                    >
+                      Редактировать
+                    </button>
                     {/* выбор номер карты */}
                     <select
                       value={selectedCards[patient.id] || ""}
-                      onChange={(e) =>
-                        handleCardChange(patient.id, e.target.value)
-                      }
+                      onChange={(e) => onCardChange(patient.id, e.target.value)}
                       onFocus={() => fetchCards(patient)}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -544,13 +281,16 @@ function Table() {
                       />
                     )}
                   </td>
-
                   <td>
                     <input
                       className="contact__input"
                       type="text"
                       placeholder="Метод оплаты"
-                      value={patient.pay_type || ""}
+                      value={
+                        selectedAppointments[patient.id]
+                          ? patient.pay_type || ""
+                          : ""
+                      }
                       readOnly
                       onClick={(e) => e.stopPropagation()}
                     />
@@ -563,9 +303,8 @@ function Table() {
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleStageClick(patient.id, "start");
+                          onUpdateStatus(patient.id, "start");
                         }}
-                        onFocus={(e) => e.stopPropagation()}
                       >
                         Начальная
                       </button>
@@ -577,10 +316,10 @@ function Table() {
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleStageClick(patient.id, "in_progress");
+                          onUpdateStatus(patient.id, "in_progress");
                         }}
                       >
-                        В процесее
+                        В процессе
                       </button>
                       <button
                         className={`contact__stage-button ${
@@ -590,7 +329,7 @@ function Table() {
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleStageClick(patient.id, "completed");
+                          onUpdateStatus(patient.id, "completed");
                         }}
                       >
                         Завершена
@@ -613,11 +352,60 @@ function Table() {
             </tbody>
           </table>
         )}
+			<section className="edit-form__section">
+
+        {editingPatient && (
+          <div className="edit-form-container">
+            <h3 className="edit-form__title">Редактировать данные пациента</h3>
+            <form className="edit-form__form" onSubmit={handleUpdatePatient}>
+              <input
+								className="edit-form__input"
+                type="text"
+                name="surname"
+                placeholder="Фамилия"
+                value={editingPatient.surname}
+                onChange={handleEditFormChange}
+                required
+              />
+              <input
+								className="edit-form__input"
+                type="text"
+                name="name"
+                placeholder="Имя"
+                value={editingPatient.name}
+                onChange={handleEditFormChange}
+                required
+              />
+              <input
+								className="edit-form__input"
+                type="text"
+                name="patron"
+                placeholder="Отчество"
+                value={editingPatient.patron || ""}
+                onChange={handleEditFormChange}
+              />
+              <input
+								className="edit-form__input"
+                type="date"
+                name="birthday"
+                value={editingPatient.birthday}
+                onChange={handleEditFormChange}
+                required
+              />
+              <button className="edit-form__save" type="submit">Сохранить</button>
+              <button className="edit-form__cancel" type="button" onClick={() => setEditingPatient(null)}>
+                Отмена
+              </button>
+            </form>
+          </div>
+        )}
+			</section>
+
 
         <PopupDelete
           showDeletePopup={showDeletePopup}
           userToDelete={userToDelete}
-          handleDelete={handleDelete}
+          handleDelete={handleConfirmDelete}
           handleClosePopupDelete={handleClosePopupDelete}
         />
 

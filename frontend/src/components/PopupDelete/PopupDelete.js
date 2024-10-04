@@ -16,7 +16,7 @@ function PopupDelete({ showDeletePopup, userToDelete, handleDelete, handleCloseP
         </button>
         <button
           className="popup-delete__button popup-delete__button-cancel"
-          onClick={handleClosePopupDelete} // Используем правильное имя пропса
+          onClick={handleClosePopupDelete}
         >
           Нет
         </button>

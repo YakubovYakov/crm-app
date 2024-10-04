@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import "./Contact.css";
-
 import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 
@@ -19,9 +18,7 @@ function Contact({ patientId, selectedAppointments }) {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDiagnosis, setSelectedDiagnosis] = useState("");
-
   const [currentStage, setCurrentStage] = useState("");
-
   const [selectedOption, setSelectedOption] = useState("");
   // Первичный прием
   const [firstIsCome, setFirstIsCome] = useState("");
@@ -29,12 +26,20 @@ function Contact({ patientId, selectedAppointments }) {
   const [firsCancelReason, setFirstCancelReason] = useState("");
   const [firstIsPayed, setFirstIsPayed] = useState("");
   // Вторичный прием
-  const [secondRecorded, setIsSecondRecorded] = useState("");
+  const [secondRecorded, setSecondRecorded] = useState("");
   const [secondIsPayed, setSecondIsPayed] = useState("");
   const [secondSignDt, setSecondSignDt] = useState("");
   const [secondIsCome, setSecondIsCome] = useState("");
   const [secondCancelReason, setSecondCancelReason] = useState("");
   const [isHosp, setIsHosp] = useState("");
+  // Заметки
+  const [notes, setNotes] = useState([]);
+  const [newNote, setNewNote] = useState("");
+  const [isNotesPopupOpen, setIsNotesPopupOpen] = useState(false);
+
+  const addNote = (newNote) => {
+    setNotes((prevNotes) => [...prevNotes, newNote]);
+  };
 
   //Фунукция для получения диагноза
   const fetchDiagnoses = async (query) => {
@@ -66,31 +71,44 @@ function Contact({ patientId, selectedAppointments }) {
   };
 
   // Функция загрузки данных пациента по ID
-  const fetchPatientData = async () => {
-    try {
-      const response = await fetch(`http://localhost:3001/api/users/${id}`);
-      if (!response.ok) {
-        throw new Error("Ошибка при загрузке данных пациента");
-      }
-      const data = await response.json();
-      setAppointment(data.first_appointment || "");
-      setPatient(data);
-      setSelectedCard(data.card_number || "");
-      setPayType(data.pay_type || "");
-      setDescription(data.description || "");
-      setCurrentStage(data.crm_status);
-      setFirstIsCome(data.first_is_come || "");
-
-      if (data.first_is_come !== null && data.first_is_come !== undefined) {
-        setSelectedOption(data.first_is_come.toString());
-      } else {
-        setSelectedOption("");
-      }
-    } catch (err) {
-      console.error("Ошибка", err);
-    }
-  };
   useEffect(() => {
+    const fetchPatientData = async () => {
+      try {
+        const response = await fetch(`http://localhost:3001/api/users/${id}`);
+        if (!response.ok) {
+          throw new Error("Ошибка при загрузке данных пациента");
+        }
+
+        const data = await response.json();
+        setPatient(data);
+        setNotes(JSON.parse(data.description || "[]"));
+        setSelectedCard(data.card_number || "");
+        setPayType(data.pay_type || "");
+        setAppointment(data.first_appointment || "");
+        setDescription(data.description || "");
+        setCurrentStage(data.crm_status);
+        setFirstIsCome(data.first_is_come || "");
+        setFirstSignDt(data.first_sign_dt || "");
+        setFirstCancelReason(data.first_cancel_reason || "");
+        setFirstIsPayed(data.first_is_payed || "");
+        setSecondRecorded(data.second_recorded || "");
+        setSecondIsPayed(data.second_is_payed || "");
+        setSecondSignDt(data.second_sign_dt || "");
+        setSecondIsCome(data.second_is_come || "");
+        setIsHosp(data.is_hosp || "");
+        setSecondCancelReason(data.second_cancel_reason || "");
+        setSelectedDiagnosis(data.diag || "");
+
+        if (data.first_is_come !== null && data.first_is_come !== undefined) {
+          setSelectedOption(data.first_is_come.toString());
+        } else {
+          setSelectedOption("");
+        }
+      } catch (err) {
+        console.error("Ошибка", err);
+      }
+    };
+
     fetchPatientData();
   }, [id]);
 
@@ -101,29 +119,29 @@ function Contact({ patientId, selectedAppointments }) {
       return;
     }
 
-    // Проверяем обязательные поля
+    // Validate required fields
     if (!selectedOption || !firstSignDt || !firstIsPayed) {
-      console.error("Сделайте выбор");
+      console.error("Пожалуйста, сделайте выбор");
       alert("Пожалуйста, заполните все поля");
       return;
     }
 
     const body = {
       cardNumber: selectedCard,
-      pay_type: patient.payType,
-      description: description,
-      first_appointment: patient.appointment || "", // Используем patient.appointment
+      pay_type: payType || "",
+      description: JSON.stringify(notes),
+      first_appointment: appointment || null,
       first_is_come: parseInt(selectedOption, 10),
-      first_sign_dt: firstSignDt,
-      // first_cancel_reason: firstCancelReason,
-      first_is_payed: firstIsPayed,
-      second_recorded: secondRecorded,
-      second_is_payed: secondIsPayed,
-      second_sign_dt: secondSignDt,
-      second_is_come: secondIsCome,
-      is_hosp: isHosp,
-      second_cancel_reason: secondCancelReason,
-      diag: selectedDiagnosis,
+      first_sign_dt: firstSignDt || null,
+      first_cancel_reason: firsCancelReason || null,
+      first_is_payed: firstIsPayed || null,
+      second_recorded: secondRecorded ? parseInt(secondRecorded, 10) : null,
+      second_is_payed: secondIsPayed || null,
+      second_sign_dt: secondSignDt || null,
+      second_is_come: secondIsCome || null,
+      is_hosp: isHosp || null,
+      second_cancel_reason: secondCancelReason || null,
+      diag: selectedDiagnosis || null,
     };
 
     console.log("Отправляемые данные:", body);
@@ -144,13 +162,33 @@ function Contact({ patientId, selectedAppointments }) {
         throw new Error("Ошибка при сохранении данных пациента");
       }
 
-      const data = await response.json();
-      console.log("Данные успешно сохранены:", data);
-      // Дополнительно: можно выполнить очистку формы или закрыть окно
+      const updatedPatient = await response.json();
+      console.log("Данные успешно сохранены:", updatedPatient);
+
+      // Update patient state
+      setPatient(updatedPatient);
+
+      // Update notes state with the latest description
+      setNotes(JSON.parse(updatedPatient.description || "[]"));
+
+      alert("Данные пациента успешно сохранены!");
     } catch (err) {
       console.error("Ошибка при сохранении данных:", err);
     }
   };
+
+  // Обновляем функцию добавления заметки, но без отдельного сохранения
+  const handleAddNote = (e) => {
+    e.preventDefault();
+
+    if (newNote.trim()) {
+      // Добавляем новую заметку в массив заметок, но не сохраняем в БД
+      setNotes((prevNotes) => [...prevNotes, newNote]);
+      setNewNote(""); // Очищаем поле для новой заметки
+    }
+  };
+
+	 
 
   // Условие для возврата, если данных о пациенте нет
   if (!patient) {
@@ -159,10 +197,10 @@ function Contact({ patientId, selectedAppointments }) {
 
   return (
     <section className="contact">
-      <Link to="/">
-        <button className="contact__back-button">Назад к таблице</button>
-      </Link>
       <div className="contact__container">
+        <Link to="/">
+          <button className="contact__back-button">Назад к таблице</button>
+        </Link>
         <label className="contact__title-label">Информация о пациенте:</label>
         <h1 className="contact__title">
           Пациент: {patient.surname} {patient.name}
@@ -176,7 +214,7 @@ function Contact({ patientId, selectedAppointments }) {
             type="text"
             placeholder="Фамилия"
             value={patient.surname || ""}
-            readOnly
+            disabled
           />
 
           <label className="contact__label" htmlFor="name">
@@ -187,7 +225,7 @@ function Contact({ patientId, selectedAppointments }) {
             type="text"
             placeholder="Имя"
             value={patient.name || ""}
-            readOnly
+            disabled
           />
           <label className="contact__label" htmlFor="name">
             Отчество
@@ -197,19 +235,17 @@ function Contact({ patientId, selectedAppointments }) {
             type="text"
             placeholder="Отчество"
             value={patient.patron || ""}
-            readOnly
+            disabled
           />
           <label className="contact__label" htmlFor="card_number">
             Номер карты
           </label>
-
-          <select id="card_number" value={selectedCard || ""} disabled>
-            {selectedCard ? (
-              <option value={selectedCard}>{selectedCard}</option>
-            ) : (
-              <option value="">Выберете номер карты</option>
-            )}
-          </select>
+          <input
+            className="contact__input"
+            type="text"
+            value={selectedCard || ""}
+            disabled
+          />
 
           <label className="contact__label" htmlFor="appointment">
             Прием (специализация врача,выполненые манипуляции)
@@ -219,7 +255,7 @@ function Contact({ patientId, selectedAppointments }) {
             type="text"
             placeholder="Прием"
             value={appointment || ""}
-            readOnly
+            disabled
           />
           <label className="contact__label" htmlFor="diagnosis">
             Диагноз
@@ -235,6 +271,7 @@ function Contact({ patientId, selectedAppointments }) {
 
           {selectedDiagnosis && (
             <button
+              className="contact__clear-button"
               type="button"
               onClick={() => {
                 setSelectedDiagnosis("");
@@ -265,12 +302,11 @@ function Contact({ patientId, selectedAppointments }) {
             id="payType"
             value={payType || ""}
             className="contact__select"
-            // onChange={(e) => setPayType(e.target.value)}
             disabled
           ></input>
 
           {/* Первичный прием */}
-          <label className="contact__title-label">Первичный прием:</label>
+          <label className="contact__subtitle-label">Первичный прием:</label>
           <label className="contact__label">Дата приема</label>
           <input
             className="contact__input"
@@ -323,14 +359,14 @@ function Contact({ patientId, selectedAppointments }) {
           </select>
 
           {/* вторичный прием */}
-          <label className="contact__title-label">Вторичный прием:</label>
+          <label className="contact__subtitle-label">Вторичный прием:</label>
           <label className="contact__label">
             Записан/не записан на повторный прием
           </label>
           <select
             className="contact__select"
             value={secondRecorded}
-            onChange={(e) => setIsSecondRecorded(e.target.value)}
+            onChange={(e) => setSecondRecorded(e.target.value)}
           >
             <option value="">Выберите...</option>
             <option className="contact__option" value="1">
@@ -407,12 +443,28 @@ function Contact({ patientId, selectedAppointments }) {
               Нет
             </option>
           </select>
+
           <label className="contact__label">Заметки о пациенте:</label>
           <textarea
             className="contact__notes"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value)}
           ></textarea>
+          <button
+            type="button"
+            className="contact__save-notes"
+            onClick={handleAddNote}
+          >
+            Добавить заметку
+          </button>
+
+          <div className="contact__notes-container">
+            {notes.map((note, index) => (
+              <div key={index} className="contact__note-item">
+                {note}
+              </div>
+            ))}
+          </div>
         </form>
 
         <button

@@ -12,6 +12,8 @@ const getUsers = async (req, res, next) => {
     query += ` WHERE name LIKE '%${search}%' OR surname LIKE '%${search}%'`;
   }
 
+  query += " ORDER BY id DESC"; // Сортировка по id в порядке убывания
+
   try {
     const [rows] = await pool.query(query);
     res.json(rows);
@@ -20,6 +22,7 @@ const getUsers = async (req, res, next) => {
     next(err);
   }
 };
+
 
 // Получение одного пользователя по ID
 const getUserById = async (req, res, next) => {
@@ -56,22 +59,26 @@ const createUser = async (req, res, next) => {
 
     // После создания пользователя синхронизируем с базой данных PostgreSQL
     let cardQuery = `
-		SELECT mm.mdoc_get_num_format(md.num, md.year, md.num_org, md.num_filial, md.num_type, mdtp.id, mdtp.class, 'IBN-YYYY-P') AS card_number
-		FROM mm.mdoc md
-		INNER JOIN mm.mdoc_type mdtp ON mdtp.id = md.mdoc_type_id
-		JOIN mm.people p ON p.id = md.people_id
-		WHERE md.SURNAME = $1 AND md.NAME = $2
+      SELECT mm.mdoc_get_num_format(md.num, md.year, md.num_org, md.num_filial, md.num_type, mdtp.id, mdtp.class, 'IBN-YYYY-P') AS card_number
+      FROM mm.mdoc md
+      INNER JOIN mm.mdoc_type mdtp ON mdtp.id = md.mdoc_type_id
+      JOIN mm.people p ON p.id = md.people_id
+      WHERE md.SURNAME = $1 AND md.NAME = $2
     `;
 
     const cardQueryParams = [surname.toUpperCase(), name.toUpperCase()];
-		
+
+    let paramIndex = 3;
+
     if (patron) {
-      cardQuery += " AND md.PATRON = $3";
+      cardQuery += ` AND md.PATRON = $${paramIndex}`;
       cardQueryParams.push(patron.toUpperCase());
+      paramIndex++;
     }
     if (birthday) {
-      cardQuery += " AND p.BIRTH = $4";
+      cardQuery += ` AND p.BIRTH = $${paramIndex}::date`;
       cardQueryParams.push(birthday);
+      paramIndex++;
     }
 
     // Запрашиваем номер карты для нового пользователя
@@ -79,20 +86,23 @@ const createUser = async (req, res, next) => {
 
     if (rows.length > 0) {
       const cards = rows.map((row) => row.card_number);
-      res
-        .status(201)
-        .json({ id: result.insertId, name, surname, patron, birthday, cards });
+      res.status(201).json({
+        id: result.insertId,
+        name,
+        surname,
+        patron,
+        birthday,
+        cards,
+      });
     } else {
-      res
-        .status(201)
-        .json({
-          id: result.insertId,
-          name,
-          surname,
-          patron,
-          birthday,
-          cards: [],
-        });
+      res.status(201).json({
+        id: result.insertId,
+        name,
+        surname,
+        patron,
+        birthday,
+        cards: [],
+      });
     }
   } catch (err) {
     console.error("Ошибка при создании пользователя:", err);
@@ -100,14 +110,22 @@ const createUser = async (req, res, next) => {
   }
 };
 
+
 // Обновление пользователя по ID
 const updateUser = async (req, res, next) => {
   const userId = req.params.id;
   const { name, surname, patron, birthday } = req.body;
+
   try {
     const [result] = await pool.query(
       "UPDATE people SET name = ?, surname = ?, patron = ?, birthday = ? WHERE id = ?",
-      [name, surname, patron, birthday, userId]
+      [
+        name.toUpperCase(),
+        surname.toUpperCase(),
+        patron ? patron.toUpperCase() : null,
+        birthday,
+        userId,
+      ]
     );
     if (result.affectedRows === 0) {
       throw new NotFoundError("Пользователь не найден");

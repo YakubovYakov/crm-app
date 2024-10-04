@@ -50,7 +50,7 @@ function Table({
 
     try {
       const response = await fetch(
-        `http://localhost:3002/api/users/${editingPatient.id}`,
+        `${process.env.REACT_APP_API_URL}/api/users/${editingPatient.id}`,
         {
           method: "PUT",
           headers: {
@@ -148,7 +148,7 @@ function Table({
     };
 
     try {
-      const response = await fetch("http://localhost:3002/api/users", {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

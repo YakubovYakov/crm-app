@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router } from "react-router-dom";
 import Table from "../Table/Table";
 import ArchivePatients from "../ArchivedPatients/ArchivedPatients";
 import Contact from "../Contact/Contact";
@@ -14,11 +15,14 @@ function App() {
     fetchData();
   }, []);
 
+	console.log("API URL:", process.env.REACT_APP_API_URL);
+
+
   // Функция для загрузки пациентов
   const fetchData = async (query = "") => {
     try {
       const response = await fetch(
-        `http://localhost:3002/api/users?search=${query}`
+        `${process.env.REACT_APP_API_URL}/api/users?search=${query}`
       );
       if (!response.ok) {
         throw new Error("Ошибка при загрузке данных");
@@ -41,7 +45,7 @@ function App() {
     try {
       console.log("Запрос данных о приеме для mdoc_id:", mdoc_id);
       const response = await fetch(
-        `http://localhost:3002/api/patient/appointment/${mdoc_id}`
+        `${process.env.REACT_APP_API_URL}/api/patient/appointment/${mdoc_id}`
       );
 
       if (!response.ok) {
@@ -114,7 +118,7 @@ function App() {
 
         // Отправляем mdoc_id и cardNumber на сервер для сохранения в БД
         const response = await fetch(
-          `http://localhost:3001/api/patient/${patientId}/saveCard`,
+          `${process.env.REACT_APP_API_URL}/api/patient/${patientId}/saveCard`,
           {
             method: "PUT",
             headers: {
@@ -159,7 +163,7 @@ function App() {
         `Отправка запроса на получение карт для пациента ${patient.id}`
       );
       const response = await fetch(
-        `http://localhost:3002/api/patient/cards?${queryParams.toString()}`
+        `${process.env.REACT_APP_API_URL}/api/patient/cards?${queryParams.toString()}`
       );
       if (!response.ok) {
         throw new Error("Ошибка при поиске карт");
@@ -222,7 +226,7 @@ function App() {
     try {
       // Сохраняем приём и метод оплаты вместе
       const response = await fetch(
-        `http://localhost:3002/api/patient/${patientId}/saveAppointment`,
+        `${process.env.REACT_APP_API_URL}/api/patient/${patientId}/saveAppointment`,
         {
           method: "PUT",
           headers: {
@@ -265,7 +269,7 @@ function App() {
       const isArchived = newStage === "completed" ? 1 : 0;
 
       const response = await fetch(
-        `http://localhost:3002/api/patient/${patientId}/status`,
+        `${process.env.REACT_APP_API_URL}/api/patient/${patientId}/status`,
         {
           method: "PUT",
           headers: {
@@ -299,7 +303,7 @@ function App() {
   const handleDeletePatient = async (patientId) => {
     try {
       const response = await fetch(
-        `http://localhost:3002/api/users/${patientId}`,
+        `${process.env.REACT_APP_API_URL}/api/users/${patientId}`,
         {
           method: "DELETE",
         }

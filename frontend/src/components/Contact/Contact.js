@@ -45,7 +45,7 @@ function Contact({ patientId, selectedAppointments }) {
   const fetchDiagnoses = async (query) => {
     try {
       const response = await fetch(
-        `http://localhost:3002/api/diagnoses?search=${query}`
+        `${process.env.REACT_APP_API_URL}/api/diagnoses?search=${query}`
       );
       if (!response.ok) {
         throw new Error("Ошибка при поиске диагнозов");
@@ -74,7 +74,7 @@ function Contact({ patientId, selectedAppointments }) {
   useEffect(() => {
     const fetchPatientData = async () => {
       try {
-        const response = await fetch(`http://localhost:3001/api/users/${id}`);
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/${id}`);
         if (!response.ok) {
           throw new Error("Ошибка при загрузке данных пациента");
         }
@@ -148,7 +148,7 @@ function Contact({ patientId, selectedAppointments }) {
 
     try {
       const response = await fetch(
-        `http://localhost:3002/api/patient/${patient.id}/save`,
+        `${process.env.REACT_APP_API_URL}/api/patient/${patient.id}/save`,
         {
           method: "PUT",
           headers: {

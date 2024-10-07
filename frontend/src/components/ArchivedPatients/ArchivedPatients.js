@@ -47,7 +47,10 @@ function ArchivePatients({ patients, onUpdateStatus }) {
                   <td>
                     <button
                       className="archived-patients__return-active"
-                      onClick={() => onUpdateStatus(patient.id, "in_progress")}
+                      onClick={() => {
+												onUpdateStatus(patient.id, "in_progress");
+												navigate(`/archived`);
+										}}
                     >
                       Вернуть в активные
                     </button>

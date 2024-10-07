@@ -9,10 +9,11 @@ const PORT = process.env.PORT || 3002;
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", 'http://10.111.74.28:3000'], 
+    origin: ["http://10.111.74.28", "http://crm.m11.dzm"],
     credentials: true,
   })
 );
+
 app.use(express.json());
 app.use("/api", userRoutes);
 app.use("/api", diagnosesRoutes);

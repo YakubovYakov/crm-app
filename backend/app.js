@@ -1,9 +1,10 @@
+// app.js
+
 const express = require("express");
 const cors = require("cors");
 const userRoutes = require("./routes/users");
 const diagnosesRoutes = require("./routes/diagnoses");
 const patientRoutes = require("./routes/patient");
-
 const app = express();
 const PORT = process.env.PORT || 3002;
 
@@ -13,7 +14,6 @@ app.use(
     credentials: true,
   })
 );
-
 app.use(express.json());
 app.use("/api", userRoutes);
 app.use("/api", diagnosesRoutes);

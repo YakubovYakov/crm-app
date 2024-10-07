@@ -5,17 +5,29 @@ const cors = require("cors");
 const userRoutes = require("./routes/users");
 const diagnosesRoutes = require("./routes/diagnoses");
 const patientRoutes = require("./routes/patient");
+
 const app = express();
 const PORT = process.env.PORT || 3002;
 
+// Настройка CORS
 app.use(
   cors({
-    origin: ["http://10.111.74.28", "http://crm.m11.dzm"], 
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
-    allowedHeaders: ["Content-Type", "Authorization"], 
-    credentials: true, 
+    origin: ["http://10.111.74.28", "http://crm.m11.dzm"], // Добавлены все нужные домены
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Разрешенные методы
+    allowedHeaders: ["Content-Type", "Authorization"], // Разрешенные заголовки
+    credentials: true, // Разрешить отправку куки и других кросс-доменных данных
   })
 );
+
+// Обработка preflight-запросов (OPTIONS)
+app.options("*", cors());
+
+app.use(express.json());
+
+// Маршруты API
+app.use("/api", userRoutes);
+app.use("/api", diagnosesRoutes);
+app.use("/api", patientRoutes);
 
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500; 

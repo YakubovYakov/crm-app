@@ -23,7 +23,10 @@ function App() {
     try {
       const response = await fetch(
         `${process.env.REACT_APP_API_URL}/api/users?search=${query}`
-      );
+      ), {
+				method: "GET",
+				credentials: "include",
+			};
       if (!response.ok) {
         throw new Error("Ошибка при загрузке данных");
       }

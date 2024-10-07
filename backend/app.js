@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3002;
 // Настройка CORS
 app.use(
   cors({
-    origin: ["http://10.111.74.28", "http://crm.m11.dzm",], // Добавлены все нужные домены
+    origin: ["http://localhost:3000", "http://10.111.74.28", "http://crm.m11.dzm",], // Добавлены все нужные домены
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Разрешенные методы
     allowedHeaders: ["Content-Type", "Authorization"], // Разрешенные заголовки
     credentials: true, // Разрешить отправку куки и других кросс-доменных данных

@@ -6,10 +6,10 @@ import "../Table/Table.css";
 function ArchivePatients({ patients, onUpdateStatus }) {
   const navigate = useNavigate();
 
-	 // Проваливание в контакт
-	 const handleRowClick = (patient) => {
-		window.open(`/contact/${patient.id}`, "_blank");
-	};
+  // Проваливание в контакт
+  const handleRowClick = (patient) => {
+    window.open(`/contact/${patient.id}`, "_blank");
+  };
 
   return (
     <section className="table__section">
@@ -37,8 +37,7 @@ function ArchivePatients({ patients, onUpdateStatus }) {
           <tbody className="archived-patients__tbody">
             {patients.length > 0 ? (
               patients.map((patient) => (
-                <tr key={patient.id}
-								onClick={() => handleRowClick(patient)}>
+                <tr key={patient.id} onClick={() => handleRowClick(patient)}>
                   <td>{`${patient.surname} ${patient.name} ${patient.patron}`}</td>
                   <td>{patient.birthday}</td>
                   <td>{patient.card_number || "Нет карты"}</td>
@@ -47,10 +46,11 @@ function ArchivePatients({ patients, onUpdateStatus }) {
                   <td>
                     <button
                       className="archived-patients__return-active"
-                      onClick={() => {
-												onUpdateStatus(patient.id, "in_progress");
-												navigate(`/archived`);
-										}}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onUpdateStatus(patient.id, "in_progress");
+                        navigate(`/archived`);
+                      }}
                     >
                       Вернуть в активные
                     </button>

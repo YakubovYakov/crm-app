@@ -156,30 +156,6 @@ const saveAppointment = async (req, res, next) => {
   }
 };
 
-// const updateCrmStatus = async (req, res, next) => {
-//   const { id } = req.params;
-//   const { crm_status } = req.body;
-//   if (!id) {
-//     return res.status(400).json({ message: "ID пациента не указан" });
-//   }
-
-//   try {
-//     const [result] = await pool.query(
-//       "UPDATE people SET crm_status = ? WHERE id = ?",
-//       [crm_status, id]
-//     );
-
-//     if (result.affectedRows === 0) {
-//       return res.status(404).json({ message: "Пациент не найден" });
-//     }
-
-//     res.status(200).json({ message: "Статус сделки обновлен" });
-//   } catch (err) {
-//     console.error("Ошибка при обновлении CRM статуса", err);
-//     next(err);
-//   }
-// };
-
 const updateCrmStatus = async (req, res, next) => {
   const { id } = req.params;
   const { crm_status } = req.body;
@@ -202,10 +178,6 @@ const updateCrmStatus = async (req, res, next) => {
     next(err);
   }
 };
-
-
-
-
 
 const saveNotes = async (req, res, next) => {
   const { id } = req.params;

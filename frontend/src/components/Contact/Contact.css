@@ -216,3 +216,55 @@
 .contact__save-button:hover {
   opacity: 0.7;
 }
+
+/* доп приемы */
+
+.contact__subtitle-label_appointment {
+	font-size: 24px;
+  font-weight: bold;
+  color: darkred;
+  margin-bottom: 15px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid black;
+  width: 52%;
+	margin-top: 20px;
+}
+
+.contact__additional-appointment {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.contact__button-delete {
+	max-width: 130px;
+	height: 30px;
+	border-radius: 7px;
+	background-color: #dc3545;
+	color: #fff;
+	border: 0;
+	cursor: pointer;
+	transition: 0.7s;
+	opacity: 1;
+}
+
+.contact__button-delete:hover {
+	opacity: 0.7;
+}
+
+.contact__add-appointment_button {
+	max-width: 130px;
+	height: 30px;
+	border-radius: 7px;
+	background-color: #4caf50;
+	color: #fff;
+	border: 0;
+	cursor: pointer;
+	transition: 0.7s;
+	opacity: 1;
+}
+
+.contact__add-appointment_button:hover {
+	opacity: 0.7;
+}
+

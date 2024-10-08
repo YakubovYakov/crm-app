@@ -36,6 +36,8 @@ function Contact({ patientId, selectedAppointments }) {
   const [notes, setNotes] = useState([]);
   const [newNote, setNewNote] = useState("");
   const [isNotesPopupOpen, setIsNotesPopupOpen] = useState(false);
+  // Доп прем
+  const [additionalAppointments, setAdditionalAppointments] = useState([]);
 
   const addNote = (newNote) => {
     setNotes((prevNotes) => [...prevNotes, newNote]);
@@ -74,7 +76,9 @@ function Contact({ patientId, selectedAppointments }) {
   useEffect(() => {
     const fetchPatientData = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/users/${id}`);
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/api/users/${id}`
+        );
         if (!response.ok) {
           throw new Error("Ошибка при загрузке данных пациента");
         }
@@ -119,7 +123,6 @@ function Contact({ patientId, selectedAppointments }) {
       return;
     }
 
-    // Validate required fields
     if (!selectedOption || !firstSignDt || !firstIsPayed) {
       console.error("Пожалуйста, сделайте выбор");
       alert("Пожалуйста, заполните все поля");
@@ -165,11 +168,46 @@ function Contact({ patientId, selectedAppointments }) {
       const updatedPatient = await response.json();
       console.log("Данные успешно сохранены:", updatedPatient);
 
-      // Update patient state
       setPatient(updatedPatient);
 
-      // Update notes state with the latest description
       setNotes(JSON.parse(updatedPatient.description || "[]"));
+
+      if (
+        Array.isArray(additionalAppointments) &&
+        additionalAppointments.length > 0
+      ) {
+        for (const appointment of additionalAppointments) {
+          if (appointment.id) {
+            await fetch(
+              `${process.env.REACT_APP_API_URL}/api/additional_appointments/${appointment.id}`,
+              {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(appointment),
+              }
+            );
+          } else {
+            await fetch(
+              `${process.env.REACT_APP_API_URL}/api/patients/${patient.id}/additional_appointments`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(appointment),
+              }
+            );
+          }
+        }
+        const fetchUpdatedAppointments = await fetch(
+          `${process.env.REACT_APP_API_URL}/api/patients/${patient.id}/additional_appointments`
+        );
+
+        if (fetchUpdatedAppointments.ok) {
+          const updatedAppointments = await fetchUpdatedAppointments.json();
+          setAdditionalAppointments(updatedAppointments);
+        } else {
+          console.error("Ошибка при обновлении дополнительных приемов");
+        }
+      }
 
       alert("Данные пациента успешно сохранены!");
     } catch (err) {
@@ -188,7 +226,40 @@ function Contact({ patientId, selectedAppointments }) {
     }
   };
 
-	 
+  useEffect(() => {
+    const fetchAdditionalAppointments = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_API_URL}/api/patients/${patient.id}/additional_appointments`
+        );
+        if (response.ok) {
+          const appointments = await response.json();
+          setAdditionalAppointments(appointments);
+        } else {
+          console.error("Ошибка при загрузке дополнительных приёмов");
+        }
+      } catch (err) {
+        console.error("Ошибка при загрузке дополнительных приемов:", err);
+      }
+    };
+
+    // Проверка на существование объекта patient и его свойства id
+    if (patient) {
+      fetchAdditionalAppointments();
+    }
+  }, [patient]);
+
+  const handleAddAppointment = () => {
+    setAdditionalAppointments([
+      ...additionalAppointments,
+      {
+        appointment_date: "",
+        is_come: "",
+        cancel_reason: "",
+        is_payed: "",
+      },
+    ]);
+  };
 
   // Условие для возврата, если данных о пациенте нет
   if (!patient) {
@@ -443,7 +514,154 @@ function Contact({ patientId, selectedAppointments }) {
               Нет
             </option>
           </select>
+          {/* доп прием */}
+         
 
+          {Array.isArray(additionalAppointments) &&
+            additionalAppointments.map((appointment, index) => (
+              <div key={index} className="contact__additional-appointment">
+                <label className="contact__subtitle-label_appointment">
+                  Дополнительный прием {index + 1}:
+                </label>
+                <label className="contact__label">Дата приема</label>
+                <input
+                  className="contact__input"
+                  type="date"
+                  value={appointment.appointment_date || ""}
+                  onChange={(e) => {
+                    const updatedAppointments = [...additionalAppointments];
+                    updatedAppointments[index].appointment_date =
+                      e.target.value;
+                    setAdditionalAppointments(updatedAppointments);
+                  }}
+                />
+                <label className="contact__label">Пришел/не пришел</label>
+                <select
+                  className="contact__select"
+                  value={appointment.is_come || ""}
+                  onChange={(e) => {
+                    const updatedAppointments = [...additionalAppointments];
+                    updatedAppointments[index].is_come = e.target.value;
+                    setAdditionalAppointments(updatedAppointments);
+                  }}
+                >
+                  <option className="contact__option" value="">
+                    Выберите:
+                  </option>
+                  <option className="contact__option" value="1">
+                    Пришел
+                  </option>
+                  <option className="contact__option" value="2">
+                    Не пришел
+                  </option>
+                </select>
+                <label className="contact__label">Причина отказа</label>
+                <input
+                  className="contact__input"
+                  type="text"
+                  value={appointment.cancel_reason || ""}
+                  onChange={(e) => {
+                    const updatedAppointments = [...additionalAppointments];
+                    updatedAppointments[index].cancel_reason = e.target.value;
+                    setAdditionalAppointments(updatedAppointments);
+                  }}
+                />
+                <label className="contact__label">Оплатил/нет</label>
+                <select
+                  className="contact__select"
+                  value={appointment.is_payed || ""}
+                  onChange={(e) => {
+                    const updatedAppointments = [...additionalAppointments];
+                    updatedAppointments[index].is_payed = parseInt(
+                      e.target.value,
+                      10
+                    );
+                    setAdditionalAppointments(updatedAppointments);
+                  }}
+                >
+                  <option className="contact__option" value="">
+                    Выберите:
+                  </option>
+                  <option className="contact__option" value="1">
+                    Да
+                  </option>
+                  <option className="contact__option" value="2">
+                    Нет
+                  </option>
+                </select>
+                <button
+                  className="contact__button-delete"
+                  type="button"
+                  onClick={async () => {
+                    const appointmentId = additionalAppointments[index].id;
+
+                    if (appointmentId) {
+                      try {
+                        const response = await fetch(
+                          `${process.env.REACT_APP_API_URL}/api/additional_appointments/${appointmentId}`,
+                          {
+                            method: "DELETE",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                          }
+                        );
+                        if (!response.ok) {
+                          throw new Error("Ошибка при удалении приема");
+                        }
+
+												alert("Прием удален")
+                        console.log("Прием успешно удален");
+                        const updatedAppointments =
+                          additionalAppointments.filter(
+                            (_, idx) => idx !== index
+                          );
+                        setAdditionalAppointments(updatedAppointments);
+                      } catch (err) {
+                        console.error("Ошибка при удалении приема:", err);
+                      }
+                    } else {
+                      const updatedAppointments = additionalAppointments.filter(
+                        (_, idx) => idx !== index
+                      );
+                      setAdditionalAppointments(updatedAppointments);
+                    }
+                  }
+								}
+									
+                >
+                  Удалить прием
+                </button>
+              </div>
+            ))}
+						 <button
+            type="button"
+            className="contact__add-appointment_button"
+            onClick={() => {
+              setAdditionalAppointments((prevAppointments) =>
+                Array.isArray(prevAppointments)
+                  ? [
+                      ...prevAppointments,
+                      {
+                        appointment_date: "",
+                        is_come: "",
+                        cancel_reason: "",
+                        is_payed: "",
+                      },
+                    ]
+                  : [
+                      {
+                        appointment_date: "",
+                        is_come: "",
+                        cancel_reason: "",
+                        is_payed: "",
+                      },
+                    ]
+              );
+            }}
+          >
+            Добавить прием
+          </button>
           <label className="contact__label">Заметки о пациенте:</label>
           <textarea
             className="contact__notes"

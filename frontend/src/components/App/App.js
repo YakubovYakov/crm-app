@@ -1,6 +1,6 @@
+// App
 import React, { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
-import { BrowserRouter as Router } from "react-router-dom";
 import Table from "../Table/Table";
 import ArchivePatients from "../ArchivedPatients/ArchivedPatients";
 import Contact from "../Contact/Contact";
@@ -15,19 +15,18 @@ function App() {
     fetchData();
   }, []);
 
-	console.log("API URL:", process.env.REACT_APP_API_URL);
-
+  // console.log("API URL:", process.env.REACT_APP_API_URL);
 
   // Функция для загрузки пациентов
   const fetchData = async (query = "") => {
     try {
       const response = await fetch(
         `${process.env.REACT_APP_API_URL}/api/users?search=${query}`,
-       {
-				method: "GET",
-				credentials: "include",
-			}
-			);
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
       if (!response.ok) {
         throw new Error("Ошибка при загрузке данных");
       }
@@ -167,7 +166,9 @@ function App() {
         `Отправка запроса на получение карт для пациента ${patient.id}`
       );
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/api/patient/cards?${queryParams.toString()}`
+        `${
+          process.env.REACT_APP_API_URL
+        }/api/patient/cards?${queryParams.toString()}`
       );
       if (!response.ok) {
         throw new Error("Ошибка при поиске карт");
@@ -188,7 +189,7 @@ function App() {
     }
   };
 
-	const handleUpdatePatient = (updatedPatient) => {
+  const handleUpdatePatient = (updatedPatient) => {
     setPatients((prevPatients) =>
       prevPatients.map((patient) =>
         patient.id === updatedPatient.id ? updatedPatient : patient
@@ -346,7 +347,7 @@ function App() {
               onDeletePatient={handleDeletePatient}
               fetchData={fetchData}
               onAddPatient={handleAddPatient}
-							onUpdatePatient={handleUpdatePatient}
+              onUpdatePatient={handleUpdatePatient}
               onCardChange={handleCardChange}
               fetchCards={fetchCards}
               cardsMap={cardsMap}
@@ -365,7 +366,17 @@ function App() {
             />
           }
         />
-        <Route path="/contact/:id" element={<Contact />} />
+        <Route
+          path="/contact/:id"
+          element={
+            <Contact
+              patients={patients}
+							selectedCards={selectedCards}
+              selectedAppointments={selectedAppointments}
+							handleAppointmentChange={handleAppointmentChange}
+            />
+          }
+        />
       </Routes>
     </div>
   );

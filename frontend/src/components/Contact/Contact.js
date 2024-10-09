@@ -3,8 +3,14 @@ import "./Contact.css";
 import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 
-function Contact({ patientId, selectedAppointments }) {
+function Contact({
+  patientId,
+  patients,
+  selectedAppointments,
+  handleAppointmentChange,
+}) {
   const { id } = useParams();
+  const { mdoc_id } = useParams();
   const [patient, setPatient] = useState(null);
   const [appointment, setAppointment] = useState("");
   const [isSelectEnable, setIsSelectEnable] = useState(false);
@@ -38,6 +44,8 @@ function Contact({ patientId, selectedAppointments }) {
   const [isNotesPopupOpen, setIsNotesPopupOpen] = useState(false);
   // Доп прем
   const [additionalAppointments, setAdditionalAppointments] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [selectedAppointment, setSelectedAppointment] = useState("");
 
   const addNote = (newNote) => {
     setNotes((prevNotes) => [...prevNotes, newNote]);
@@ -75,46 +83,78 @@ function Contact({ patientId, selectedAppointments }) {
   // Функция загрузки данных пациента по ID
   useEffect(() => {
     const fetchPatientData = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/api/users/${id}`
-        );
-        if (!response.ok) {
-          throw new Error("Ошибка при загрузке данных пациента");
-        }
+      const foundPatient = patients.find((p) => p.id === parseInt(id));
+      if (foundPatient) {
+        setPatient(foundPatient);
+        setSelectedAppointment(foundPatient.first_appointment || ""); // Безопасное значение по умолчанию
+      } else {
+        try {
+          const response = await fetch(
+            `${process.env.REACT_APP_API_URL}/api/users/${id}`
+          );
+          if (!response.ok) {
+            throw new Error("Ошибка при загрузке данных пациента");
+          }
 
-        const data = await response.json();
-        setPatient(data);
-        setNotes(JSON.parse(data.description || "[]"));
-        setSelectedCard(data.card_number || "");
-        setPayType(data.pay_type || "");
-        setAppointment(data.first_appointment || "");
-        setDescription(data.description || "");
-        setCurrentStage(data.crm_status);
-        setFirstIsCome(data.first_is_come || "");
-        setFirstSignDt(data.first_sign_dt || "");
-        setFirstCancelReason(data.first_cancel_reason || "");
-        setFirstIsPayed(data.first_is_payed || "");
-        setSecondRecorded(data.second_recorded || "");
-        setSecondIsPayed(data.second_is_payed || "");
-        setSecondSignDt(data.second_sign_dt || "");
-        setSecondIsCome(data.second_is_come || "");
-        setIsHosp(data.is_hosp || "");
-        setSecondCancelReason(data.second_cancel_reason || "");
-        setSelectedDiagnosis(data.diag || "");
+          const data = await response.json();
+          setPatient(data);
+          setSelectedAppointment(data.first_appointment);
+          setNotes(JSON.parse(data.description || "[]"));
+          setSelectedCard(data.card_number || "");
+          setPayType(data.pay_type || "");
+          setAppointment(data.first_appointment || "");
+          setDescription(data.description || "");
+          setCurrentStage(data.crm_status);
+          setFirstIsCome(data.first_is_come || "");
+          setFirstSignDt(data.first_sign_dt || "");
+          setFirstCancelReason(data.first_cancel_reason || "");
+          setFirstIsPayed(data.first_is_payed || "");
+          setSecondRecorded(data.second_recorded || "");
+          setSecondIsPayed(data.second_is_payed || "");
+          setSecondSignDt(data.second_sign_dt || "");
+          setSecondIsCome(data.second_is_come || "");
+          setIsHosp(data.is_hosp || "");
+          setSecondCancelReason(data.second_cancel_reason || "");
+          setSelectedDiagnosis(data.diag || "");
 
-        if (data.first_is_come !== null && data.first_is_come !== undefined) {
-          setSelectedOption(data.first_is_come.toString());
-        } else {
-          setSelectedOption("");
+          if (data.first_is_come !== null && data.first_is_come !== undefined) {
+            setSelectedOption(data.first_is_come.toString());
+          } else {
+            setSelectedOption("");
+          }
+        } catch (err) {
+          console.error("Ошибка", err);
         }
-      } catch (err) {
-        console.error("Ошибка", err);
       }
     };
 
     fetchPatientData();
-  }, [id]);
+  }, [id, patients]);
+
+  useEffect(() => {
+    if (patient && patient.mdoc_id) {
+      const fetchAppointments = async () => {
+        try {
+          const response = await fetch(
+            `${process.env.REACT_APP_API_URL}/api/patient/appointment/${patient.mdoc_id}`
+          );
+          if (response.ok) {
+            const appointmentsData = await response.json();
+            setAppointments(appointmentsData);
+            console.log("Appointments loaded: ", appointmentsData);
+          } else {
+            console.error("Ошибка при загрузке данных о приёмах");
+          }
+        } catch (err) {
+          console.error("Ошибка при загрузке данных о приёмах:", err);
+        }
+      };
+
+      fetchAppointments();
+    } else {
+      console.error("mdoc_id не найден");
+    }
+  }, [patient]);
 
   // Функция для сохранения данных пациента
   const handleSave = async () => {
@@ -177,6 +217,13 @@ function Contact({ patientId, selectedAppointments }) {
         additionalAppointments.length > 0
       ) {
         for (const appointment of additionalAppointments) {
+          const appointmentData = {
+            appointment_date: appointment.appointment_date || null,
+            is_come: appointment.is_come || null,
+            cancel_reason: appointment.cancel_reason || null,
+            is_payed: appointment.is_payed || null,
+          };
+
           if (appointment.id) {
             await fetch(
               `${process.env.REACT_APP_API_URL}/api/additional_appointments/${appointment.id}`,
@@ -277,104 +324,137 @@ function Contact({ patientId, selectedAppointments }) {
           Пациент: {patient.surname} {patient.name}
         </h1>
         <form className="contact__form">
-          <label className="contact__label" htmlFor="name">
-            Фамилия
-          </label>
-          <input
-            className="contact__input"
-            type="text"
-            placeholder="Фамилия"
-            value={patient.surname || ""}
-            disabled
-          />
+          <div className="contact__information">
+            <div className="contact__form-container">
+              <label className="contact__label" htmlFor="name">
+                Фамилия
+              </label>
+              <input
+                className="contact__input"
+                type="text"
+                placeholder="Фамилия"
+                value={patient.surname || ""}
+                disabled
+              />
 
-          <label className="contact__label" htmlFor="name">
-            Имя
-          </label>
-          <input
-            className="contact__input"
-            type="text"
-            placeholder="Имя"
-            value={patient.name || ""}
-            disabled
-          />
-          <label className="contact__label" htmlFor="name">
-            Отчество
-          </label>
-          <input
-            className="contact__input"
-            type="text"
-            placeholder="Отчество"
-            value={patient.patron || ""}
-            disabled
-          />
-          <label className="contact__label" htmlFor="card_number">
-            Номер карты
-          </label>
-          <input
-            className="contact__input"
-            type="text"
-            value={selectedCard || ""}
-            disabled
-          />
+              <label className="contact__label" htmlFor="name">
+                Имя
+              </label>
+              <input
+                className="contact__input"
+                type="text"
+                placeholder="Имя"
+                value={patient.name || ""}
+                disabled
+              />
+              <label className="contact__label" htmlFor="name">
+                Отчество
+              </label>
+              <input
+                className="contact__input"
+                type="text"
+                placeholder="Отчество"
+                value={patient.patron || ""}
+                disabled
+              />
+              <label className="contact__label" htmlFor="card_number">
+                Номер карты
+              </label>
+              <input
+                className="contact__input"
+                type="text"
+                value={selectedCard || ""}
+                disabled
+              />
 
-          <label className="contact__label" htmlFor="appointment">
-            Прием (специализация врача,выполненые манипуляции)
-          </label>
-          <input
-            className="contact__input"
-            type="text"
-            placeholder="Прием"
-            value={appointment || ""}
-            disabled
-          />
-          <label className="contact__label" htmlFor="diagnosis">
-            Диагноз
-          </label>
-          <input
-            className="contact__input"
-            type="text"
-            placeholder="Диагноз"
-            value={searchTerm || selectedDiagnosis}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            disabled={!!selectedDiagnosis}
-          />
+              <label className="contact__label" htmlFor="appointment">
+                Прием (специализация врача,выполненые манипуляции)
+              </label>
+              <input
+                className="contact__input"
+                type="text"
+                placeholder="Прием"
+                value={selectedAppointment || ""}
+                disabled
+              />
+              <label className="contact__label" htmlFor="diagnosis">
+                Диагноз
+              </label>
+              <input
+                className="contact__input"
+                type="text"
+                placeholder="Диагноз"
+                value={searchTerm || selectedDiagnosis}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={!!selectedDiagnosis}
+              />
 
-          {selectedDiagnosis && (
-            <button
-              className="contact__clear-button"
-              type="button"
-              onClick={() => {
-                setSelectedDiagnosis("");
-                setSearchTerm("");
-              }}
-            >
-              Очистить диагноз
-            </button>
-          )}
-
-          {diagnoses.length > 0 && !selectedDiagnosis && (
-            <ul className="diagnosis-list">
-              {diagnoses.map((diag) => (
-                <li
-                  key={diag.id}
+              {selectedDiagnosis && (
+                <button
+                  className="contact__clear-button"
+                  type="button"
                   onClick={() => {
-                    setSelectedDiagnosis(diag.diag);
+                    setSelectedDiagnosis("");
                     setSearchTerm("");
                   }}
                 >
-                  {diag.diag}
-                </li>
-              ))}
-            </ul>
-          )}
-          <label className="contact__label">Канал обращения</label>
-          <input
-            id="payType"
-            value={payType || ""}
-            className="contact__select"
-            disabled
-          ></input>
+                  Очистить диагноз
+                </button>
+              )}
+
+              {diagnoses.length > 0 && !selectedDiagnosis && (
+                <ul className="diagnosis-list">
+                  {diagnoses.map((diag) => (
+                    <li
+                      key={diag.id}
+                      onClick={() => {
+                        setSelectedDiagnosis(diag.diag);
+                        setSearchTerm("");
+                      }}
+                    >
+                      {diag.diag}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <label className="contact__label">Канал обращения</label>
+              <input
+                id="payType"
+                value={payType || ""}
+                className="contact__select"
+                disabled
+              ></input>
+            </div>
+            {/* Отображаем все приёмы в виде чекбоксов */}
+            <div className="contact__checkbox-group">
+              <h3>Все приёмы</h3>
+              {appointments.length > 0 ? (
+                appointments.map((appointment, index) => (
+                  <div key={index} className="contact__checkbox-container">
+                    <label className="contact__checkbox-label">
+                      Назначил: {appointment.naz_name} ({appointment.pay_type})
+                    </label>
+                    <input
+                      className="contact__checkbox-input"
+                      type="checkbox"
+                      checked={
+                        selectedAppointments[patient.id] ===
+                        appointment.naz_name
+                      }
+                      onChange={() =>
+                        handleAppointmentChange(
+                          patient.id,
+                          appointment.naz_name
+                        )
+                      }
+                    />
+                  </div>
+                ))
+              ) : (
+                <p>Нет доступных приёмов</p>
+              )}
+            </div>
+          </div>
 
           {/* Первичный прием */}
           <label className="contact__subtitle-label">Первичный прием:</label>
@@ -515,7 +595,6 @@ function Contact({ patientId, selectedAppointments }) {
             </option>
           </select>
           {/* доп прием */}
-         
 
           {Array.isArray(additionalAppointments) &&
             additionalAppointments.map((appointment, index) => (
@@ -610,7 +689,7 @@ function Contact({ patientId, selectedAppointments }) {
                           throw new Error("Ошибка при удалении приема");
                         }
 
-												alert("Прием удален")
+                        alert("Прием удален");
                         console.log("Прием успешно удален");
                         const updatedAppointments =
                           additionalAppointments.filter(
@@ -626,15 +705,13 @@ function Contact({ patientId, selectedAppointments }) {
                       );
                       setAdditionalAppointments(updatedAppointments);
                     }
-                  }
-								}
-									
+                  }}
                 >
                   Удалить прием
                 </button>
               </div>
             ))}
-						 <button
+          <button
             type="button"
             className="contact__add-appointment_button"
             onClick={() => {
@@ -643,18 +720,18 @@ function Contact({ patientId, selectedAppointments }) {
                   ? [
                       ...prevAppointments,
                       {
-                        appointment_date: "",
-                        is_come: "",
-                        cancel_reason: "",
-                        is_payed: "",
+                        appointment_date: "" || null,
+                        is_come: "" || null,
+                        cancel_reason: "" || null,
+                        is_payed: "" || null,
                       },
                     ]
                   : [
                       {
-                        appointment_date: "",
-                        is_come: "",
-                        cancel_reason: "",
-                        is_payed: "",
+                        appointment_date: "" || null,
+                        is_come: "" || null,
+                        cancel_reason: "" || null,
+                        is_payed: "" || null,
                       },
                     ]
               );
